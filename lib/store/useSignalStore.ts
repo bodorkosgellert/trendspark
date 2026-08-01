@@ -4,25 +4,33 @@ import { persist } from 'zustand/middleware';
 import { UNLOCK_COST } from '@/lib/data/catalog';
 import { persistStorage } from '@/lib/store/storage';
 import { useWalletStore } from '@/lib/store/useWalletStore';
+import type { WatchEntry } from '@/lib/types';
 
 export type UnlockResult = 'unlocked' | 'already' | 'insufficient';
 
 interface SignalState {
   unlockedIds: string[];
-  savedIds: string[];
+  watched: WatchEntry[];
   dismissedIds: string[];
   unlock: (signalId: string, keyword: string) => UnlockResult;
-  toggleSaved: (signalId: string) => void;
+  /** Adds or removes a keyword from the watchlist. Returns true when now watching. */
+  toggleWatch: (signalId: string, momentum: number) => boolean;
   dismiss: (signalId: string) => void;
   restore: () => void;
   reset: () => void;
+}
+
+interface LegacySignalState {
+  unlockedIds?: string[];
+  savedIds?: string[];
+  dismissedIds?: string[];
 }
 
 export const useSignalStore = create<SignalState>()(
   persist(
     (set, get) => ({
       unlockedIds: [],
-      savedIds: [],
+      watched: [],
       dismissedIds: [],
       unlock: (signalId, keyword) => {
         if (get().unlockedIds.includes(signalId)) return 'already';
@@ -31,12 +39,22 @@ export const useSignalStore = create<SignalState>()(
         set((state) => ({ unlockedIds: [signalId, ...state.unlockedIds] }));
         return 'unlocked';
       },
-      toggleSaved: (signalId) =>
+      toggleWatch: (signalId, momentum) => {
+        const existing = get().watched.some((entry) => entry.signalId === signalId);
+        if (existing) {
+          set((state) => ({
+            watched: state.watched.filter((entry) => entry.signalId !== signalId),
+          }));
+          return false;
+        }
         set((state) => ({
-          savedIds: state.savedIds.includes(signalId)
-            ? state.savedIds.filter((id) => id !== signalId)
-            : [signalId, ...state.savedIds],
-        })),
+          watched: [
+            { signalId, startedAt: new Date().toISOString(), startMomentum: momentum },
+            ...state.watched,
+          ],
+        }));
+        return true;
+      },
       dismiss: (signalId) =>
         set((state) => ({
           dismissedIds: state.dismissedIds.includes(signalId)
@@ -44,8 +62,33 @@ export const useSignalStore = create<SignalState>()(
             : [signalId, ...state.dismissedIds],
         })),
       restore: () => set({ dismissedIds: [] }),
-      reset: () => set({ unlockedIds: [], savedIds: [], dismissedIds: [] }),
+      reset: () => set({ unlockedIds: [], watched: [], dismissedIds: [] }),
     }),
-    { name: 'trendspark-signals', storage: persistStorage },
+    {
+      name: 'trendspark-signals',
+      storage: persistStorage,
+      version: 2,
+      migrate: (persisted, version) => {
+        if (version >= 2) return persisted;
+        const legacy = (persisted ?? {}) as LegacySignalState;
+        const startedAt = new Date().toISOString();
+        return {
+          ...legacy,
+          watched: (legacy.savedIds ?? []).map((signalId) => ({
+            signalId,
+            startedAt,
+            startMomentum: 0,
+          })),
+        };
+      },
+    },
   ),
 );
+
+export function isWatched(watched: WatchEntry[], signalId: string): boolean {
+  return watched.some((entry) => entry.signalId === signalId);
+}
+
+export function watchEntry(watched: WatchEntry[], signalId: string): WatchEntry | undefined {
+  return watched.find((entry) => entry.signalId === signalId);
+}

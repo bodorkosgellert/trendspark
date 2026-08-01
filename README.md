@@ -31,16 +31,16 @@ EXPO_PUBLIC_OPENAI_API_KEY=       # unset: seeded playbooks are used, Regenerate
 
 ### Where things live
 
-| Path | Contents |
-| --- | --- |
-| `app/(tabs)` | Radar · My plays · Credits · You |
-| `app/signal/[id].tsx` | Signal / Playbook / First move tabs |
-| `app/briefing.tsx` | Voice briefing player |
-| `app/paywall.tsx` | Plans and credit packs |
-| `app/agent.tsx` | x402 machine-access lane |
-| `lib/data/signals.ts` | 20 seeded signals, offline fallback and demo dataset |
-| `lib/store/` | `usePrefsStore` · `useSignalStore` · `useWalletStore` |
-| `lib/elevenlabs.ts`, `lib/openai.ts` | The only two external call sites |
+| Path                                 | Contents                                              |
+| ------------------------------------ | ----------------------------------------------------- |
+| `app/(tabs)`                         | Radar · My plays · Credits · You                      |
+| `app/signal/[id].tsx`                | Signal / Playbook / First move tabs                   |
+| `app/briefing.tsx`                   | Voice briefing player                                 |
+| `app/paywall.tsx`                    | Plans and credit packs                                |
+| `app/agent.tsx`                      | x402 machine-access lane                              |
+| `lib/data/signals.ts`                | 20 seeded signals, offline fallback and demo dataset  |
+| `lib/store/`                         | `usePrefsStore` · `useSignalStore` · `useWalletStore` |
+| `lib/elevenlabs.ts`, `lib/openai.ts` | The only two external call sites                      |
 
 ---
 

@@ -63,6 +63,14 @@ export interface Signal {
   play: Playbook;
 }
 
+/** A keyword the user put on their watchlist, with the moment tracking began. */
+export interface WatchEntry {
+  signalId: string;
+  startedAt: string;
+  /** Momentum reading at the moment tracking began, for a since-then comparison. */
+  startMomentum: number;
+}
+
 export type PlanId = 'free' | 'weekly' | 'annual';
 
 export interface Plan {

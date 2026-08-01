@@ -14,7 +14,7 @@ import { rankByHeat, scopeSignals } from '@/lib/feed';
 import { palette } from '@/lib/palette';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { usePrefsStore } from '@/lib/store/usePrefsStore';
-import { useSignalStore } from '@/lib/store/useSignalStore';
+import { useSignalStore, isWatched } from '@/lib/store/useSignalStore';
 import { FREE_BRIEFINGS_PER_DAY, useWalletStore } from '@/lib/store/useWalletStore';
 import type { Signal } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -37,7 +37,9 @@ export default function RadarScreen() {
   const niches = usePrefsStore((state) => state.niches);
   const unlockedIds = useSignalStore((state) => state.unlockedIds);
   const dismissedIds = useSignalStore((state) => state.dismissedIds);
+  const watched = useSignalStore((state) => state.watched);
   const unlock = useSignalStore((state) => state.unlock);
+  const toggleWatch = useSignalStore((state) => state.toggleWatch);
   const plan = useWalletStore((state) => state.plan);
   const briefingPlays = useWalletStore((state) => state.briefingPlays);
   const briefingDate = useWalletStore((state) => state.briefingDate);
@@ -145,6 +147,11 @@ export default function RadarScreen() {
           <SignalCard
             signal={item}
             unlocked={unlockedIds.includes(item.id)}
+            watching={isWatched(watched, item.id)}
+            onToggleWatch={() => {
+              tapFeedback();
+              toggleWatch(item.id, item.momentum);
+            }}
             onPress={() => openSignal(item)}
             onUnlock={() => handleUnlock(item)}
           />

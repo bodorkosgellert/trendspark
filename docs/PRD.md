@@ -40,11 +40,11 @@ Trend data exists and is cheap. Acting on it is not.
 
 ## 3. Target user
 
-| Segment | Trigger | What they want |
-| --- | --- | --- |
-| Solo creator / faceless-channel operator | Needs a topic that will still be rising when the video ships | A content angle plus a script hook, today |
-| Indie hacker / micro-SaaS builder | Watching for an unserved integration or tool gap | A validated demand number and a scoped v1 |
-| Side-hustler / reseller | Wants a product or local service with rising intent | A sourcing/positioning play with an honest margin note |
+| Segment                                  | Trigger                                                      | What they want                                         |
+| ---------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------ |
+| Solo creator / faceless-channel operator | Needs a topic that will still be rising when the video ships | A content angle plus a script hook, today              |
+| Indie hacker / micro-SaaS builder        | Watching for an unserved integration or tool gap             | A validated demand number and a scoped v1              |
+| Side-hustler / reseller                  | Wants a product or local service with rising intent          | A sourcing/positioning play with an honest margin note |
 
 Explicitly **not** the target: SEO agencies, in-house marketing teams, enterprise intent-data buyers.
 That was the earlier B2B framing and it was dropped; it changes the pricing rail and the copy.
@@ -68,13 +68,13 @@ That was the earlier B2B framing and it was dropped; it changes the pricing rail
 
 ## 5. Success metrics
 
-| Metric | Definition | Target |
-| --- | --- | --- |
-| Briefing D1 retention | Users who play a briefing on two consecutive days | > 35% |
-| Unlock rate | Sessions containing ≥ 1 playbook unlock | > 20% |
-| Credits per paying user per month | Ledger `unlock` entries / paying users | > 6 |
-| Free → paid conversion | Users who buy any pack or plan within 7 days | > 5% |
-| Time to first unlock | Onboarding complete → first `unlock` ledger entry | < 3 min median |
+| Metric                            | Definition                                        | Target         |
+| --------------------------------- | ------------------------------------------------- | -------------- |
+| Briefing D1 retention             | Users who play a briefing on two consecutive days | > 35%          |
+| Unlock rate                       | Sessions containing ≥ 1 playbook unlock           | > 20%          |
+| Credits per paying user per month | Ledger `unlock` entries / paying users            | > 6            |
+| Free → paid conversion            | Users who buy any pack or plan within 7 days      | > 5%           |
+| Time to first unlock              | Onboarding complete → first `unlock` ledger entry | < 3 min median |
 
 ## 6. Product principles
 
@@ -133,20 +133,33 @@ the app labels itself "Transcript mode". Every control still works.
 
 Three tabs.
 
-- **Signal** (always free) — 14-point sparkline, searches/mo, competition, window in days, "Why now"
-  narrative, projected-decay progress bar, source tags.
+- **Signal** (always free) — interest timeline with a 14 / 30 / 90-day range switch, searches/mo,
+  competition, window in days, "Why now" narrative, projected-decay progress bar, source tags. When the
+  keyword is tracked, a panel shows days tracked, change since tracking began, peak while watching,
+  window left, and a plain-language verdict.
 - **Playbook** (1 credit) — play kind badge (content / product / affiliate / local), headline, target
   audience, four ordered steps with detail, three angles, monetization model + estimate + honest note.
   A **Regenerate** button appears only when an OpenAI key is present.
 - **First move** (1 credit) — ready-to-post copy with a native share / copy action.
 
-Header carries a save (bookmark) toggle. Locked state shows a blurred panel with
+Header carries a **Track** toggle (free, no credit). Locked state shows a blurred panel with
 "Unlock playbook · 1 credit" and the guarantee "One credit, yours forever. Signal data stays free."
 
 ### 7.5 My plays — `app/(tabs)/plays.tsx`
 
-Toggle between **Unlocked** (permanent, count) and **Saved** (bookmarked, count), each with an empty
-state routing back to Radar.
+Toggle between **Unlocked** (permanent, count) and **Watching** (tracked keywords, count), each with an
+empty state routing back to Radar.
+
+Watching is the observation loop: tracking is free and records the moment it started
+(`WatchEntry.startedAt`), so each row can answer "has this kept climbing since I first saw it?" A row
+shows change since tracking began, an `accelerating` / `holding` / `cooling` status, days left in the
+window, a 30-day timeline with a dashed marker at the point tracking started, and a verdict sentence.
+This exists so a user can wait out a spike instead of spending a credit on the first thing that moves —
+which is the honest answer to "expressed interest is not willingness to pay".
+
+Pre-rise history is generated deterministically from the signal id in `lib/watch.ts`
+(`buildHistory`), because the seeded feed only carries 14 points. When the live pipeline in §9.3 lands,
+`buildHistory` is the single function that gets replaced by stored daily observations.
 
 ### 7.6 Credits — `app/(tabs)/wallet.tsx`
 
@@ -170,15 +183,15 @@ Written playbooks), and a demo reset that clears all three stores and returns to
 
 Read-only spec surface, reachable from Credits.
 
-| Endpoint | Price | Returns |
-| --- | --- | --- |
-| `GET /v1/signals?niche=ai-tools` | $0.002 | Ranked list, metadata only |
-| `GET /v1/signals/{id}` | $0.01 | Full signal with series and sources |
-| `GET /v1/signals/{id}/playbook` | $0.05 | Generated playbook |
+| Endpoint                         | Price  | Returns                             |
+| -------------------------------- | ------ | ----------------------------------- |
+| `GET /v1/signals?niche=ai-tools` | $0.002 | Ranked list, metadata only          |
+| `GET /v1/signals/{id}`           | $0.01  | Full signal with series and sources |
+| `GET /v1/signals/{id}/playbook`  | $0.05  | Generated playbook                  |
 
 Documented flow: unauthenticated request → `402 Payment Required` carrying price and payment address
 → agent pays in stablecoin → retry with payment header → data returned. No account, no card, no
-invoice. The screen also states why this is *not* the consumer checkout (see §8).
+invoice. The screen also states why this is _not_ the consumer checkout (see §8).
 
 ---
 
@@ -186,14 +199,14 @@ invoice. The screen also states why this is *not* the consumer checkout (see §8
 
 ### 8.1 Consumer rail (implemented, simulated)
 
-| Item | Price | Contents |
-| --- | --- | --- |
-| Free | €0 | 2 starting credits, 1 briefing/day |
-| Pack — 3 credits | €2.99 | ~€1.00 per playbook |
-| Pack — 10 credits | €7.99 | €0.80 per playbook |
-| Pack — 30 credits | €17.99 | €0.60 per playbook, best value |
-| Weekly plan | €4.99/wk | Unlimited briefing replays, 10 credits/week, signals 12h early |
-| Annual plan | €79/yr | Weekly perks, 25 credits/month, early access to new niches |
+| Item              | Price    | Contents                                                       |
+| ----------------- | -------- | -------------------------------------------------------------- |
+| Free              | €0       | 2 starting credits, 1 briefing/day                             |
+| Pack — 3 credits  | €2.99    | ~€1.00 per playbook                                            |
+| Pack — 10 credits | €7.99    | €0.80 per playbook                                             |
+| Pack — 30 credits | €17.99   | €0.60 per playbook, best value                                 |
+| Weekly plan       | €4.99/wk | Unlimited briefing replays, 10 credits/week, signals 12h early |
+| Annual plan       | €79/yr   | Weekly perks, 25 credits/month, early access to new niches     |
 
 1 credit = 1 playbook unlock, permanent. Credits are consumable IAP; plans are auto-renewing IAP.
 
@@ -201,7 +214,7 @@ invoice. The screen also states why this is *not* the consumer checkout (see §8
 
 - **Credit packs are the micropayment, made viable.** A €1 card charge loses most of its value to the
   fixed per-transaction fee. Batching into a €2.99–€17.99 pack clears the fee floor while keeping the
-  *perceived* unit price under €1.
+  _perceived_ unit price under €1.
 - **The plan carries the habit.** The briefing is the recurring surface, so it takes the recurring
   charge. Unlocks stay variable because usage is bursty.
 - **x402 is not the consumer checkout.** App Store Review Guideline 3.1.1 and Google Play billing
@@ -250,7 +263,7 @@ Two independent signals are required, because neither is sufficient alone:
 - **Level → Google Ads Keyword Planner.** Absolute average monthly searches per `keyword × geo`,
   12 months of history, ~100k geo targets down to city and postal code. Data is free with an approved
   developer token; approval is not same-day.
-- **Momentum → Google Trends.** The *shape* of the 0–100 curve over 90 days.
+- **Momentum → Google Trends.** The _shape_ of the 0–100 curve over 90 days.
 
 `score = momentum × log(local volume)`, gated on a volume floor. That is the Radar ranking.
 
@@ -265,7 +278,7 @@ makes a €2.99 pack viable.
 
 **Known traps.**
 
-1. Google Trends rescales 0–100 *per request*; Berlin's 100 ≠ Munich's 100. Cross-geo comparison
+1. Google Trends rescales 0–100 _per request_; Berlin's 100 ≠ Munich's 100. Cross-geo comparison
    requires an absolute anchor, which is why Keyword Planner is mandatory in the pair.
 2. City-level long-tail keywords fall below Google's reporting floor and return bucketed ranges. The
    smallest reliable unit is metro/region, not neighbourhood.
@@ -274,6 +287,29 @@ makes a €2.99 pack viable.
    geo lookups — i.e. it cannot deliver local interest at all.
 
 Requires a backend for the scheduler and cache; the seeded dataset stays as the fallback.
+
+### 9.4 Source access and cost, per candidate
+
+Researched access terms for the five source categories a demand engine could draw on. "Free" is only
+meaningful together with the eligibility column — three of the five are gated by something other than
+money.
+
+| Source                                        | Cost                                                                                                                  | Real constraint                                                                                                                                             |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Google Ads API (Keyword Planner)**          | Data free                                                                                                             | Needs an active Ads account + approved developer token; approval is not same-day                                                                            |
+| **Google Trends** (unofficial)                | Free                                                                                                                  | Rate-limited, breaks; 0–100 index rescaled per request                                                                                                      |
+| **Google Trends API** (official, alpha)       | Not announced                                                                                                         | Application-gated alpha; consistently scaled data is the reason to want it                                                                                  |
+| **DataForSEO**                                | $0.06/task Ads, $0.0027/task Trends, $50 min top-up                                                                   | None — this is the interim rail                                                                                                                             |
+| **Reddit Data API**                           | Free ≤100 QPM (OAuth) for non-commercial                                                                              | **Commercial use needs approval and is billed $0.24 per 1,000 calls** — TrendSpark is commercial                                                            |
+| **X API**                                     | Pay-per-use, $0.005 per post read, capped 2M reads/mo                                                                 | No free tier since Feb 2026; legacy Basic $200/mo and Pro $5,000/mo closed to new signups. Read-heavy trend scanning gets expensive fast                    |
+| **TikTok Research API**                       | No fee published                                                                                                      | **Ineligible.** Academic and EU non-profit researchers only; creators, advertisers and commercial users are explicitly excluded                             |
+| **Amazon Product Advertising / Creators API** | Free                                                                                                                  | **Chicken-and-egg.** Requires ~10 qualifying Associates sales in a trailing 30 days to keep access; PA-API 5 is being retired in favour of the Creators API |
+| **Google Shopping (Content API)**             | Free                                                                                                                  | Merchant-scoped, no public product search, and shuts down 18 Aug 2026 in favour of the Merchant API                                                         |
+| **OpenAI / Perplexity citation audits**       | Perplexity Search API $5 per 1,000 requests; Sonar $1/$1 per 1M tokens plus $5–$12 per 1,000 requests by context size | Metered but cheap at scheduled volume; measures citation _presence_, not prompt volume                                                                      |
+
+**Conclusion for v1.** Build on Keyword Planner + Trends via DataForSEO, and add LLM citation audits as
+the second axis. Reddit stays a manual research input rather than a product dependency until a
+commercial agreement is in place. TikTok and Amazon are out on eligibility, not price.
 
 ---
 
@@ -305,10 +341,10 @@ hooks/useBriefingPlayer.tsx   expo-audio playback or synthetic timeline
 
 **External services**
 
-| Service | Env var | Endpoint / model | Behaviour with no key |
-| --- | --- | --- | --- |
+| Service    | Env var                          | Endpoint / model                                    | Behaviour with no key                       |
+| ---------- | -------------------------------- | --------------------------------------------------- | ------------------------------------------- |
 | ElevenLabs | `EXPO_PUBLIC_ELEVENLABS_API_KEY` | `/v1/text-to-speech/{voiceId}`, `eleven_turbo_v2_5` | Synthetic timeline, "Transcript mode" label |
-| OpenAI | `EXPO_PUBLIC_OPENAI_API_KEY` | `/v1/chat/completions`, `gpt-4o-mini`, JSON mode | Seeded playbook used, Regenerate hidden |
+| OpenAI     | `EXPO_PUBLIC_OPENAI_API_KEY`     | `/v1/chat/completions`, `gpt-4o-mini`, JSON mode    | Seeded playbook used, Regenerate hidden     |
 
 `EXPO_PUBLIC_*` values are embedded in the client bundle. Acceptable for a hackathon build; both must
 move behind a server route before any public release.
@@ -331,14 +367,14 @@ alone — the sign and value are always printed.
 
 ## 12. Risks
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| Trends' per-request rescaling makes cross-geo claims wrong | High | Pair with Keyword Planner absolute volume; never compare raw indices |
-| Google Ads developer token approval delay | Medium | Ship on DataForSEO, migrate later at zero data cost |
-| Playbook quality varies by model output | Medium | Seeded playbooks as the floor; regeneration is opt-in and additive |
-| Store rejection of a crypto checkout | High | x402 confined to the machine lane; consumer rail is IAP only |
-| Local long-tail keywords below reporting floor | Medium | Metro/region granularity, volume gate on the feed |
-| Client-embedded API keys | High | Proxy both providers server-side before release |
+| Risk                                                       | Severity | Mitigation                                                           |
+| ---------------------------------------------------------- | -------- | -------------------------------------------------------------------- |
+| Trends' per-request rescaling makes cross-geo claims wrong | High     | Pair with Keyword Planner absolute volume; never compare raw indices |
+| Google Ads developer token approval delay                  | Medium   | Ship on DataForSEO, migrate later at zero data cost                  |
+| Playbook quality varies by model output                    | Medium   | Seeded playbooks as the floor; regeneration is opt-in and additive   |
+| Store rejection of a crypto checkout                       | High     | x402 confined to the machine lane; consumer rail is IAP only         |
+| Local long-tail keywords below reporting floor             | Medium   | Metro/region granularity, volume gate on the feed                    |
+| Client-embedded API keys                                   | High     | Proxy both providers server-side before release                      |
 
 ## 13. Roadmap after the hackathon
 

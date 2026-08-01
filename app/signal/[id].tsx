@@ -3,10 +3,10 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft,
-  Bookmark,
   Check,
   ChevronLeft,
   Copy,
+  Eye,
   Lock,
   Sparkles,
   Target,
@@ -14,7 +14,7 @@ import {
 
 import { MomentumBadge } from '@/components/MomentumBadge';
 import { SectionLabel } from '@/components/SectionLabel';
-import { Sparkline } from '@/components/Sparkline';
+import { TrendTimeline } from '@/components/TrendTimeline';
 import { AppText } from '@/components/ui/Text';
 import { NICHE_LABEL, UNLOCK_COST } from '@/lib/data/catalog';
 import { getSignalById } from '@/lib/data/signals';
@@ -23,9 +23,19 @@ import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { isModelConfigured, regeneratePlaybook } from '@/lib/openai';
 import { palette } from '@/lib/palette';
 import { shareText } from '@/lib/share';
-import { useSignalStore } from '@/lib/store/useSignalStore';
-import type { Playbook } from '@/lib/types';
+import { useSignalStore, watchEntry } from '@/lib/store/useSignalStore';
+import type { Playbook, Signal, WatchEntry } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  buildHistory,
+  rangeLabel,
+  signedPct,
+  STATUS_TEXT_CLASS,
+  statusLabel,
+  TIMELINE_RANGES,
+  trackedLabel,
+  watchStats,
+} from '@/lib/watch';
 
 type Tab = 'signal' | 'playbook' | 'pitch';
 
@@ -40,9 +50,9 @@ export default function SignalDetailScreen() {
   const signal = useMemo(() => getSignalById(id), [id]);
 
   const unlockedIds = useSignalStore((state) => state.unlockedIds);
-  const savedIds = useSignalStore((state) => state.savedIds);
+  const watched = useSignalStore((state) => state.watched);
   const unlock = useSignalStore((state) => state.unlock);
-  const toggleSaved = useSignalStore((state) => state.toggleSaved);
+  const toggleWatch = useSignalStore((state) => state.toggleWatch);
 
   const [tab, setTab] = useState<Tab>('signal');
   const [override, setOverride] = useState<Playbook | null>(null);
@@ -65,7 +75,7 @@ export default function SignalDetailScreen() {
   }
 
   const unlocked = unlockedIds.includes(signal.id);
-  const saved = savedIds.includes(signal.id);
+  const entry = watchEntry(watched, signal.id);
   const play = override ?? signal.play;
 
   const handleUnlock = () => {
@@ -116,20 +126,17 @@ export default function SignalDetailScreen() {
         <Pressable
           onPress={() => {
             tapFeedback();
-            toggleSaved(signal.id);
+            toggleWatch(signal.id, signal.momentum);
           }}
           accessibilityRole="button"
-          accessibilityLabel={saved ? 'Remove from saved' : 'Save signal'}
+          accessibilityState={{ selected: Boolean(entry) }}
+          accessibilityLabel={entry ? 'Stop tracking this keyword' : 'Track this keyword over time'}
           className={cn(
             'h-9 w-9 items-center justify-center rounded-full border active:opacity-70',
-            saved ? 'border-accent bg-accent-soft' : 'border-border bg-panel',
+            entry ? 'border-accent bg-accent-soft' : 'border-border bg-panel',
           )}
         >
-          <Bookmark
-            color={saved ? palette.accent : palette.muted}
-            size={16}
-            fill={saved ? palette.accent : 'transparent'}
-          />
+          <Eye color={entry ? palette.accent : palette.muted} size={16} />
         </Pressable>
       </View>
 
@@ -188,7 +195,14 @@ export default function SignalDetailScreen() {
         </View>
 
         {tab === 'signal' ? (
-          <SignalTab signal={signal} />
+          <SignalTab
+            signal={signal}
+            entry={entry}
+            onToggleWatch={() => {
+              tapFeedback();
+              toggleWatch(signal.id, signal.momentum);
+            }}
+          />
         ) : unlocked ? (
           tab === 'playbook' ? (
             <PlaybookTab
@@ -249,15 +263,119 @@ function StatCell({ label, value, tone }: { label: string; value: string; tone?:
   );
 }
 
-function SignalTab({ signal }: { signal: NonNullable<ReturnType<typeof getSignalById>> }) {
+function SignalTab({
+  signal,
+  entry,
+  onToggleWatch,
+}: {
+  signal: Signal;
+  entry: WatchEntry | undefined;
+  onToggleWatch: () => void;
+}) {
   const decay = Math.min(1, Math.max(0.08, 1 - signal.peakInDays / 30));
+  const [range, setRange] = useState<number>(30);
+  const history = useMemo(() => buildHistory(signal), [signal]);
+  const stats = useMemo(
+    () => (entry ? watchStats(signal, entry.startedAt, history) : null),
+    [entry, signal, history],
+  );
 
   return (
     <View className="gap-5">
       <View className="border-border bg-panel gap-3 rounded-2xl border p-4">
-        <SectionLabel hint="Last 14 days">Interest</SectionLabel>
-        <Sparkline series={signal.series} height={120} gradientId={`detail-${signal.id}`} />
+        <View className="flex-row items-center justify-between">
+          <SectionLabel>Interest over time</SectionLabel>
+          <View className="flex-row gap-1.5">
+            {TIMELINE_RANGES.map((option) => {
+              const active = range === option;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => {
+                    tapFeedback();
+                    setRange(option);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`Show last ${option} days`}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 active:opacity-70',
+                    active ? 'border-accent bg-accent-soft' : 'border-border bg-panel-raised',
+                  )}
+                >
+                  <AppText
+                    weight="semibold"
+                    className={cn('text-[11px]', active ? 'text-up' : 'text-muted')}
+                  >
+                    {rangeLabel(option)}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <TrendTimeline
+          history={history}
+          range={range}
+          markerIndex={stats?.startIndex}
+          markerLabel="Tracking started"
+          height={132}
+          gradientId={`detail-${signal.id}`}
+        />
       </View>
+
+      {stats ? (
+        <View className="border-accent bg-accent-soft gap-3 rounded-2xl border p-4">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Eye color={palette.accent} size={14} />
+              <AppText
+                weight="semibold"
+                className="text-up text-[10px] uppercase"
+                style={{ letterSpacing: 1.2 }}
+              >
+                {trackedLabel(stats.daysWatched)}
+              </AppText>
+            </View>
+            <AppText weight="semibold" className={cn('text-xs', STATUS_TEXT_CLASS[stats.status])}>
+              {statusLabel(stats.status)}
+            </AppText>
+          </View>
+          <View className="flex-row gap-3">
+            <StatCell
+              label="Since you started"
+              value={signedPct(stats.changePct)}
+              tone={stats.changePct >= 0 ? 'up' : undefined}
+            />
+            <StatCell label="Peak while watching" value={String(Math.round(stats.peakValue))} />
+            <StatCell
+              label="Window left"
+              value={stats.daysLeft === 0 ? 'Closed' : `${stats.daysLeft}d`}
+              tone="hot"
+            />
+          </View>
+          <AppText className="text-muted text-[13px] leading-5">{stats.verdict}</AppText>
+        </View>
+      ) : (
+        <Pressable
+          onPress={onToggleWatch}
+          accessibilityRole="button"
+          className="border-border bg-panel flex-row items-center justify-between gap-3 rounded-2xl border p-4 active:opacity-80"
+        >
+          <View className="flex-1 gap-1">
+            <AppText weight="semibold" className="text-foreground text-[15px]">
+              Track this keyword
+            </AppText>
+            <AppText className="text-muted text-[13px] leading-5">
+              Free. Follow it day by day and see whether it keeps climbing before you spend a
+              credit.
+            </AppText>
+          </View>
+          <View className="border-accent bg-accent-soft h-10 w-10 items-center justify-center rounded-full border">
+            <Eye color={palette.accent} size={17} />
+          </View>
+        </Pressable>
+      )}
 
       <View className="flex-row gap-3">
         <StatCell label="Searches" value={`${formatVolume(signal.volume)}/mo`} />

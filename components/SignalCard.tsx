@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { ChevronRight, Check, Lock, MapPin } from 'lucide-react-native';
+import { ChevronRight, Check, Eye, Lock, MapPin } from 'lucide-react-native';
 
 import { MomentumBadge } from '@/components/MomentumBadge';
 import { Sparkline } from '@/components/Sparkline';
@@ -27,9 +27,19 @@ interface SignalCardProps {
   unlocked: boolean;
   onPress: () => void;
   onUnlock: () => void;
+  watching?: boolean;
+  /** Adds a free track toggle to the card footer. */
+  onToggleWatch?: () => void;
 }
 
-export function SignalCard({ signal, unlocked, onPress, onUnlock }: SignalCardProps) {
+export function SignalCard({
+  signal,
+  unlocked,
+  onPress,
+  onUnlock,
+  watching = false,
+  onToggleWatch,
+}: SignalCardProps) {
   const tone = windowTone(signal.peakInDays);
 
   return (
@@ -87,17 +97,41 @@ export function SignalCard({ signal, unlocked, onPress, onUnlock }: SignalCardPr
             <ChevronRight color={palette.accent} size={14} />
           </View>
         ) : (
-          <Pressable
-            onPress={onUnlock}
-            accessibilityRole="button"
-            accessibilityLabel={`Unlock playbook for ${signal.keyword}`}
-            className="bg-accent flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-80"
-          >
-            <Lock color={palette.accentInk} size={12} />
-            <AppText weight="semibold" className="text-accent-foreground text-xs">
-              Unlock · {UNLOCK_COST} credit
-            </AppText>
-          </Pressable>
+          <View className="flex-row items-center gap-2">
+            {onToggleWatch ? (
+              <Pressable
+                onPress={onToggleWatch}
+                accessibilityRole="button"
+                accessibilityState={{ selected: watching }}
+                accessibilityLabel={
+                  watching ? `Stop tracking ${signal.keyword}` : `Track ${signal.keyword} over time`
+                }
+                className={cn(
+                  'flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 active:opacity-70',
+                  watching ? 'border-accent bg-accent-soft' : 'border-border bg-panel-raised',
+                )}
+              >
+                <Eye color={watching ? palette.accent : palette.muted} size={12} />
+                <AppText
+                  weight="semibold"
+                  className={cn('text-xs', watching ? 'text-up' : 'text-muted')}
+                >
+                  {watching ? 'Tracking' : 'Track'}
+                </AppText>
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={onUnlock}
+              accessibilityRole="button"
+              accessibilityLabel={`Unlock playbook for ${signal.keyword}`}
+              className="bg-accent flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-80"
+            >
+              <Lock color={palette.accentInk} size={12} />
+              <AppText weight="semibold" className="text-accent-foreground text-xs">
+                Unlock · {UNLOCK_COST} credit
+              </AppText>
+            </Pressable>
+          </View>
         )}
       </View>
     </Pressable>

@@ -1,35 +1,60 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Bookmark, Radar } from 'lucide-react-native';
+import { Eye, Radar } from 'lucide-react-native';
 
 import { CreditPill } from '@/components/CreditPill';
 import { SectionLabel } from '@/components/SectionLabel';
 import { SignalCard } from '@/components/SignalCard';
 import { AppText } from '@/components/ui/Text';
+import { WatchRow } from '@/components/WatchRow';
 import { SIGNALS } from '@/lib/data/signals';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
 import { useSignalStore } from '@/lib/store/useSignalStore';
-import type { Signal } from '@/lib/types';
+import type { Signal, WatchEntry } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type Mode = 'unlocked' | 'saved';
+type Mode = 'unlocked' | 'watching';
+
+const MODES: { id: Mode; label: string }[] = [
+  { id: 'unlocked', label: 'Unlocked' },
+  { id: 'watching', label: 'Watching' },
+];
+
+interface WatchItem {
+  signal: Signal;
+  entry: WatchEntry;
+}
 
 export default function PlaysScreen() {
   const unlockedIds = useSignalStore((state) => state.unlockedIds);
-  const savedIds = useSignalStore((state) => state.savedIds);
+  const watched = useSignalStore((state) => state.watched);
   const unlock = useSignalStore((state) => state.unlock);
+  const toggleWatch = useSignalStore((state) => state.toggleWatch);
   const [mode, setMode] = useState<Mode>('unlocked');
 
-  const ids = mode === 'unlocked' ? unlockedIds : savedIds;
-  const items = useMemo(
+  const unlockedItems = useMemo(
     () =>
-      ids
+      unlockedIds
         .map((id) => SIGNALS.find((signal) => signal.id === id))
         .filter((signal): signal is Signal => Boolean(signal)),
-    [ids],
+    [unlockedIds],
   );
+
+  const watchItems = useMemo(
+    () =>
+      watched
+        .map((entry) => {
+          const signal = SIGNALS.find((item) => item.id === entry.signalId);
+          return signal ? { signal, entry } : null;
+        })
+        .filter((item): item is WatchItem => Boolean(item)),
+    [watched],
+  );
+
+  const count = mode === 'unlocked' ? unlockedItems.length : watchItems.length;
+  const isEmpty = count === 0;
 
   const handleUnlock = (signal: Signal) => {
     const result = unlock(signal.id, signal.keyword);
@@ -51,15 +76,15 @@ export default function PlaysScreen() {
       </View>
 
       <View className="border-border bg-canvas flex-row gap-2 border-b px-5 py-3">
-        {(['unlocked', 'saved'] as Mode[]).map((item) => {
-          const active = mode === item;
-          const count = item === 'unlocked' ? unlockedIds.length : savedIds.length;
+        {MODES.map((item) => {
+          const active = mode === item.id;
+          const badge = item.id === 'unlocked' ? unlockedItems.length : watchItems.length;
           return (
             <Pressable
-              key={item}
+              key={item.id}
               onPress={() => {
                 tapFeedback();
-                setMode(item);
+                setMode(item.id);
               }}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
@@ -70,9 +95,9 @@ export default function PlaysScreen() {
             >
               <AppText
                 weight="semibold"
-                className={cn('text-xs capitalize', active ? 'text-up' : 'text-muted')}
+                className={cn('text-xs', active ? 'text-up' : 'text-muted')}
               >
-                {item} · {count}
+                {item.label} · {badge}
               </AppText>
             </Pressable>
           );
@@ -84,22 +109,22 @@ export default function PlaysScreen() {
         contentContainerClassName="px-5 py-5 gap-3 pb-safe-offset-8"
         showsVerticalScrollIndicator={false}
       >
-        {items.length === 0 ? (
+        {isEmpty ? (
           <View className="items-center gap-3 py-20">
             <View className="bg-panel h-12 w-12 items-center justify-center rounded-2xl">
               {mode === 'unlocked' ? (
                 <Radar color={palette.inkDim} size={22} />
               ) : (
-                <Bookmark color={palette.inkDim} size={22} />
+                <Eye color={palette.inkDim} size={22} />
               )}
             </View>
             <AppText weight="semibold" className="text-foreground">
-              {mode === 'unlocked' ? 'No playbooks yet' : 'Nothing saved yet'}
+              {mode === 'unlocked' ? 'No playbooks yet' : 'Nothing tracked yet'}
             </AppText>
             <AppText className="text-muted max-w-72 text-center text-sm">
               {mode === 'unlocked'
                 ? 'Unlock a signal on the radar and it stays here for good.'
-                : 'Bookmark signals you want to come back to before the window closes.'}
+                : 'Tap Track on any signal to follow it day by day. Free, no credit — you see whether it keeps climbing before you commit.'}
             </AppText>
             <Pressable
               onPress={() => router.push('/(tabs)')}
@@ -111,21 +136,40 @@ export default function PlaysScreen() {
               </AppText>
             </Pressable>
           </View>
-        ) : (
+        ) : mode === 'unlocked' ? (
           <>
-            <SectionLabel hint={`${items.length} total`}>
-              {mode === 'unlocked' ? 'Yours forever' : 'Watching'}
-            </SectionLabel>
-            {items.map((signal) => (
+            <SectionLabel hint={`${unlockedItems.length} total`}>Yours forever</SectionLabel>
+            {unlockedItems.map((signal) => (
               <SignalCard
                 key={signal.id}
                 signal={signal}
+                unlocked
+                onPress={() => {
+                  tapFeedback();
+                  router.push({ pathname: '/signal/[id]', params: { id: signal.id } });
+                }}
+                onUnlock={() => handleUnlock(signal)}
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            <SectionLabel hint={`${watchItems.length} tracked`}>Watchlist</SectionLabel>
+            {watchItems.map(({ signal, entry }) => (
+              <WatchRow
+                key={signal.id}
+                signal={signal}
+                entry={entry}
                 unlocked={unlockedIds.includes(signal.id)}
                 onPress={() => {
                   tapFeedback();
                   router.push({ pathname: '/signal/[id]', params: { id: signal.id } });
                 }}
                 onUnlock={() => handleUnlock(signal)}
+                onStop={() => {
+                  tapFeedback();
+                  toggleWatch(signal.id, signal.momentum);
+                }}
               />
             ))}
           </>
