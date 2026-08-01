@@ -71,6 +71,30 @@ export interface WatchEntry {
   startMomentum: number;
 }
 
+/** How far a user got with a signal. Ordered and cumulative. */
+export type OutcomeStage = 'shipped' | 'first-money' | 'repeating';
+
+/**
+ * A self-reported result for one signal.
+ *
+ * TrendSpark never connects to a payment processor and never verifies these
+ * numbers — the whole point is that the user states what a play made them and
+ * then decides, in their own time, what share of it to pass back. Unlike a
+ * contribution the revenue figure is free text, because it is not a price.
+ */
+export interface Outcome {
+  id: string;
+  signalId: string;
+  stage: OutcomeStage;
+  /** What the user says it made, in euro cents. Zero is valid for 'shipped'. */
+  revenueCents: number;
+  note: string;
+  at: string;
+  updatedAt: string;
+  /** How much of this outcome the user has already passed back. */
+  passedBackCents: number;
+}
+
 /** Things a user does that cost something to serve. */
 export type UsageKind = 'briefing' | 'playbook' | 'regenerate' | 'copy';
 

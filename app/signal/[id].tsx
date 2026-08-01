@@ -12,6 +12,7 @@ import {
   Sparkles,
   Target,
   ThumbsDown,
+  Trophy,
 } from 'lucide-react-native';
 
 import { MomentumBadge } from '@/components/MomentumBadge';
@@ -26,8 +27,10 @@ import { getSignalById } from '@/lib/data/signals';
 import { competitionLabel, detectedLabel, formatVolume, playKindLabel } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { isModelConfigured, regeneratePlaybook } from '@/lib/openai';
+import { outcomeSummaryLine, stageMeta } from '@/lib/outcomes';
 import { palette } from '@/lib/palette';
 import { shareText } from '@/lib/share';
+import { outcomeForSignal, useOutcomeStore } from '@/lib/store/useOutcomeStore';
 import { useSignalStore, watchEntry } from '@/lib/store/useSignalStore';
 import { useSupportStore } from '@/lib/store/useSupportStore';
 import { tagsFor } from '@/lib/tags';
@@ -67,6 +70,7 @@ export default function SignalDetailScreen() {
   const notWorthIt = useSupportStore((state) => state.notWorthIt);
   const rate = useSupportStore((state) => state.rate);
   const record = useSupportStore((state) => state.record);
+  const outcomes = useOutcomeStore((state) => state.outcomes);
 
   const [tab, setTab] = useState<Tab>(isTab(tabParam) ? tabParam : 'signal');
   const [override, setOverride] = useState<Playbook | null>(null);
@@ -93,6 +97,7 @@ export default function SignalDetailScreen() {
   }
 
   const entry = watchEntry(watched, signal.id);
+  const outcome = outcomeForSignal(outcomes, signal.id);
   const play = override ?? signal.play;
   const helped = worthIt.includes(signal.id);
   const missed = notWorthIt.includes(signal.id);
@@ -232,7 +237,52 @@ export default function SignalDetailScreen() {
       </ScrollView>
 
       <View className="pb-safe-offset-4 border-border bg-canvas gap-2 border-t px-5 pt-4">
-        {helped ? (
+        {outcome ? (
+          <>
+            <View className="border-border bg-panel flex-row items-center gap-2 rounded-2xl border px-4 py-3">
+              <Trophy color={palette.accent} size={15} />
+              <View className="flex-1">
+                <AppText weight="semibold" className="text-foreground text-[13px]">
+                  {stageMeta(outcome.stage).label}
+                </AppText>
+                <AppText className="text-ink-dim text-[11px]">
+                  {outcomeSummaryLine(outcome)}
+                </AppText>
+              </View>
+            </View>
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => {
+                  tapFeedback();
+                  router.push({ pathname: '/outcome', params: { signalId: signal.id } });
+                }}
+                accessibilityRole="button"
+                className="border-border bg-panel flex-1 items-center rounded-2xl border py-3.5 active:opacity-70"
+              >
+                <AppText weight="semibold" className="text-muted text-[14px]">
+                  Update result
+                </AppText>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  tapFeedback();
+                  router.push(
+                    outcome.revenueCents > 0
+                      ? { pathname: '/contribute', params: { outcomeId: outcome.id } }
+                      : '/contribute',
+                  );
+                }}
+                accessibilityRole="button"
+                className="bg-accent flex-1 flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-80"
+              >
+                <Heart color={palette.accentInk} size={15} />
+                <AppText weight="semibold" className="text-accent-foreground text-[14px]">
+                  {outcome.revenueCents > 0 ? 'Pass back a share' : 'Decide a thank you'}
+                </AppText>
+              </Pressable>
+            </View>
+          </>
+        ) : helped ? (
           <>
             <Pressable
               onPress={() => {
@@ -247,8 +297,22 @@ export default function SignalDetailScreen() {
                 Decide what this was worth
               </AppText>
             </Pressable>
+            <Pressable
+              onPress={() => {
+                tapFeedback();
+                router.push({ pathname: '/outcome', params: { signalId: signal.id } });
+              }}
+              accessibilityRole="button"
+              className="border-border bg-panel flex-row items-center justify-center gap-2 rounded-2xl border py-3.5 active:opacity-70"
+            >
+              <Trophy color={palette.muted} size={15} />
+              <AppText weight="semibold" className="text-muted text-[14px]">
+                I shipped this — log the result
+              </AppText>
+            </Pressable>
             <AppText className="text-ink-dim text-center text-[11px]">
-              You set the amount, including nothing. Nothing gets taken away either way.
+              Logging a result changes nothing about access or billing. It only lets you come back
+              and decide a share once you know what it made you.
             </AppText>
           </>
         ) : missed ? (

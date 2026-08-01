@@ -1,13 +1,15 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowUpRight, Bot, Check, Heart, Unlock } from 'lucide-react-native';
+import { ArrowUpRight, Bot, Check, Heart, Trophy, Unlock } from 'lucide-react-native';
 
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
 import { FEED_COST_MONTHLY_CENTS, MONTHLY_TIERS } from '@/lib/data/catalog';
 import { euro } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
+import { outcomeTotals } from '@/lib/outcomes';
 import { palette } from '@/lib/palette';
+import { useOutcomeStore } from '@/lib/store/useOutcomeStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
 import { runCostCents, useSupportStore } from '@/lib/store/useSupportStore';
 import { cn } from '@/lib/utils';
@@ -20,9 +22,11 @@ export default function SupportScreen() {
   const setMonthly = useSupportStore((state) => state.setMonthly);
   const openedCount = useSignalStore((state) => state.openedIds.length);
   const watchedCount = useSignalStore((state) => state.watched.length);
+  const outcomes = useOutcomeStore((state) => state.outcomes);
 
   const cost = runCostCents(usage);
   const covered = cost > 0 ? Math.min(100, Math.round((contributedCents / cost) * 100)) : null;
+  const results = outcomeTotals(outcomes);
 
   return (
     <View className="bg-background flex-1">
@@ -77,6 +81,48 @@ export default function SupportScreen() {
             </AppText>
           </View>
           <ArrowUpRight color={palette.accent} size={18} />
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            tapFeedback();
+            router.push({ pathname: '/(tabs)/plays', params: { mode: 'results' } });
+          }}
+          accessibilityRole="button"
+          className="border-border bg-panel gap-3 rounded-2xl border p-4 active:opacity-80"
+        >
+          <View className="flex-row items-center gap-2">
+            <Trophy color={palette.accent} size={15} />
+            <AppText weight="semibold" className="text-foreground flex-1 text-[15px]">
+              What it made you
+            </AppText>
+            <ArrowUpRight color={palette.inkDim} size={16} />
+          </View>
+          {results.logged === 0 ? (
+            <AppText className="text-muted text-[12px] leading-5">
+              Nothing logged yet. When a play ships or earns, record it — then you can pass back a
+              share of your own number instead of guessing an amount.
+            </AppText>
+          ) : (
+            <>
+              <View className="flex-row gap-3">
+                <MiniStat label="Reported" value={euro(results.revenueCents)} />
+                <MiniStat label="Passed back" value={euro(results.passedBackCents)} />
+                <MiniStat
+                  label="Share paid"
+                  value={
+                    results.sharePct === null
+                      ? '—'
+                      : `${results.sharePct.toFixed(results.sharePct < 1 ? 1 : 0)}%`
+                  }
+                />
+              </View>
+              <AppText className="text-ink-dim text-[11px] leading-4">
+                Self-reported across {results.logged} {results.logged === 1 ? 'play' : 'plays'}.
+                TrendSpark never verifies these figures and they never leave your device.
+              </AppText>
+            </>
+          )}
         </Pressable>
 
         <View className="gap-3">
@@ -218,6 +264,24 @@ export default function SupportScreen() {
           </AppText>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="border-border bg-panel-raised flex-1 gap-1 rounded-xl border p-3">
+      <AppText
+        weight="semibold"
+        className="text-ink-dim text-[9px] uppercase"
+        style={{ letterSpacing: 0.8 }}
+        numberOfLines={1}
+      >
+        {label}
+      </AppText>
+      <AppText weight="bold" className="text-foreground text-[15px]" numberOfLines={1}>
+        {value}
+      </AppText>
     </View>
   );
 }

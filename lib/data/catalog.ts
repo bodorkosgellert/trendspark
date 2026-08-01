@@ -1,4 +1,4 @@
-import type { ContributionTier, MonthlyTier, Niche, UsageKind } from '@/lib/types';
+import type { ContributionTier, MonthlyTier, Niche, OutcomeStage, UsageKind } from '@/lib/types';
 
 export const NICHES: Niche[] = [
   { id: 'ai-tools', label: 'AI & tools', blurb: 'Model launches, integrations, wrappers' },
@@ -90,6 +90,22 @@ export const OUTCOME_STEPS_CENTS = [
 
 /** Fractions of a self-reported outcome the user can choose to pass back. */
 export const SHARE_FRACTIONS = [0.01, 0.02, 0.03, 0.05, 0.1] as const;
+
+/**
+ * The rungs of getting somewhere with a signal, in order.
+ *
+ * Shipping is deliberately a stage of its own: most plays reach it and stop, and
+ * a ledger that only counted money would show an empty screen to someone who did
+ * the work and did not sell anything yet.
+ */
+export const OUTCOME_STAGES: { id: OutcomeStage; label: string; blurb: string }[] = [
+  { id: 'shipped', label: 'Shipped it', blurb: 'The thing exists. No money in yet.' },
+  { id: 'first-money', label: 'First money in', blurb: 'Someone paid for it at least once.' },
+  { id: 'repeating', label: 'It keeps paying', blurb: 'Repeat revenue, not a one-off.' },
+];
+
+/** Quick amounts on the result sheet. The field itself accepts any number. */
+export const REVENUE_PRESETS_CENTS = [2500, 10_000, 50_000, 200_000];
 
 /** Value moments before the app mentions paying again. */
 export const PROMPT_AFTER_EVENTS = 5;

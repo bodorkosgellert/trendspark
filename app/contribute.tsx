@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { router } from 'expo-router';
-import { Info, X } from 'lucide-react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Info, Trophy, X } from 'lucide-react-native';
 
 import { AmountDial } from '@/components/AmountDial';
 import { SectionLabel } from '@/components/SectionLabel';
@@ -15,9 +15,11 @@ import {
   SHARE_FRACTIONS,
   STORE_NET_SHARE,
 } from '@/lib/data/catalog';
+import { getSignalById } from '@/lib/data/signals';
 import { euro } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
+import { useOutcomeStore } from '@/lib/store/useOutcomeStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
 import { runCostCents, useSupportStore, valueMoments } from '@/lib/store/useSupportStore';
 import { cn } from '@/lib/utils';
@@ -30,12 +32,20 @@ const MODES: { id: Mode; label: string }[] = [
 ];
 
 export default function ContributeScreen() {
+  const { outcomeId } = useLocalSearchParams<{ outcomeId?: string }>();
   const usage = useSupportStore((state) => state.usage);
   const contribute = useSupportStore((state) => state.contribute);
   const markPromptSeen = useSupportStore((state) => state.markPromptSeen);
   const watchedCount = useSignalStore((state) => state.watched.length);
+  const outcomes = useOutcomeStore((state) => state.outcomes);
+  const passBack = useOutcomeStore((state) => state.passBack);
 
-  const [mode, setMode] = useState<Mode>('flat');
+  // Arriving from a logged result anchors the share on a number the user already
+  // stated, which is the whole reason the ledger exists.
+  const outcome = outcomeId ? outcomes.find((item) => item.id === outcomeId) : undefined;
+  const outcomeSignal = outcome ? getSignalById(outcome.signalId) : undefined;
+
+  const [mode, setMode] = useState<Mode>(outcome ? 'share' : 'flat');
   const [index, setIndex] = useState(DEFAULT_TIER_INDEX);
   const [outcomeStep, setOutcomeStep] = useState(2);
   const [fraction, setFraction] = useState<number>(0.03);
@@ -43,7 +53,7 @@ export default function ContributeScreen() {
   const cost = runCostCents(usage);
   const moments = valueMoments(usage);
 
-  const outcomeCents = OUTCOME_STEPS_CENTS[outcomeStep] ?? 0;
+  const outcomeCents = outcome ? outcome.revenueCents : (OUTCOME_STEPS_CENTS[outcomeStep] ?? 0);
   const rawShareCents = Math.round(outcomeCents * fraction);
   const shareIndex = nearestTierIndex(rawShareCents);
 
@@ -59,13 +69,17 @@ export default function ContributeScreen() {
       return;
     }
     successFeedback();
+    const pct = Math.round(fraction * 100);
     contribute(
       tier.cents,
       mode === 'share'
-        ? `${Math.round(fraction * 100)}% of ${euro(outcomeCents)}`
+        ? outcomeSignal
+          ? `${pct}% of ${euro(outcomeCents)} · ${outcomeSignal.keyword}`
+          : `${pct}% of ${euro(outcomeCents)}`
         : 'Pay what it was worth',
       mode,
     );
+    if (outcome) passBack(outcome.id, tier.cents);
     router.back();
   };
 
@@ -93,11 +107,14 @@ export default function ContributeScreen() {
       >
         <View className="gap-3">
           <AppText weight="bold" className="text-foreground text-[27px] leading-9">
-            You decide what this was worth.
+            {outcome && outcomeSignal
+              ? 'You said it worked. You decide the share.'
+              : 'You decide what this was worth.'}
           </AppText>
           <AppText className="text-muted text-[14px] leading-6">
-            Nothing in TrendSpark is locked and nothing here changes that. Paying is a judgement you
-            make after the fact, and zero is a real answer.
+            {outcome && outcomeSignal
+              ? `${outcomeSignal.keyword} made you ${euro(outcome.revenueCents)} by your own account. Pass back whatever fraction of that feels right, including none of it.`
+              : 'Nothing in TrendSpark is locked and nothing here changes that. Paying is a judgement you make after the fact, and zero is a real answer.'}
           </AppText>
         </View>
 
@@ -169,33 +186,73 @@ export default function ContributeScreen() {
 
               <View className="gap-2">
                 <SectionLabel>What it made you</SectionLabel>
-                <View className="flex-row flex-wrap gap-2">
-                  {OUTCOME_STEPS_CENTS.map((step, stepIndex) => {
-                    const active = stepIndex === outcomeStep;
-                    return (
-                      <Pressable
-                        key={step}
-                        onPress={() => {
-                          tapFeedback();
-                          setOutcomeStep(stepIndex);
-                        }}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        className={cn(
-                          'rounded-full border px-3 py-1.5 active:opacity-70',
-                          active ? 'border-accent bg-accent-soft' : 'border-border bg-panel-raised',
-                        )}
+                {outcome && outcomeSignal ? (
+                  <View className="border-border bg-panel-raised gap-2 rounded-2xl border p-4">
+                    <View className="flex-row items-center gap-2">
+                      <Trophy color={palette.accent} size={15} />
+                      <AppText
+                        weight="semibold"
+                        className="text-foreground flex-1 text-[13px]"
+                        numberOfLines={1}
                       >
-                        <AppText
-                          weight="semibold"
-                          className={cn('text-[12px]', active ? 'text-up' : 'text-muted')}
+                        {outcomeSignal.keyword}
+                      </AppText>
+                      <AppText weight="bold" className="text-foreground text-[15px]">
+                        {euro(outcome.revenueCents)}
+                      </AppText>
+                    </View>
+                    <AppText className="text-ink-dim text-[11px] leading-4">
+                      {outcome.passedBackCents > 0
+                        ? `You have already passed back ${euro(outcome.passedBackCents)} on this one.`
+                        : 'Your own figure, from the result you logged.'}
+                    </AppText>
+                    <Pressable
+                      onPress={() => {
+                        tapFeedback();
+                        router.replace({
+                          pathname: '/outcome',
+                          params: { signalId: outcome.signalId },
+                        });
+                      }}
+                      accessibilityRole="button"
+                      className="active:opacity-70"
+                    >
+                      <AppText weight="semibold" className="text-up text-[12px]">
+                        Change the number
+                      </AppText>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View className="flex-row flex-wrap gap-2">
+                    {OUTCOME_STEPS_CENTS.map((step, stepIndex) => {
+                      const active = stepIndex === outcomeStep;
+                      return (
+                        <Pressable
+                          key={step}
+                          onPress={() => {
+                            tapFeedback();
+                            setOutcomeStep(stepIndex);
+                          }}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: active }}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 active:opacity-70',
+                            active
+                              ? 'border-accent bg-accent-soft'
+                              : 'border-border bg-panel-raised',
+                          )}
                         >
-                          {step === 0 ? 'Nothing yet' : euro(step)}
-                        </AppText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                          <AppText
+                            weight="semibold"
+                            className={cn('text-[12px]', active ? 'text-up' : 'text-muted')}
+                          >
+                            {step === 0 ? 'Nothing yet' : euro(step)}
+                          </AppText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
 
               <View className="gap-2">
@@ -236,6 +293,9 @@ export default function ContributeScreen() {
                 The outcome is whatever you say it is. TrendSpark cannot see your revenue and never
                 asks for access to it, so this is a fairness dial, not a commission — and it is why
                 the app can never bill you for a result it did not witness.
+                {outcome
+                  ? ' What you pass back is recorded against this play, so the ledger shows the share you have actually paid.'
+                  : ' Log a result under My plays › Results and the share gets measured against your own number instead of a rough band.'}
               </AppText>
             </View>
           </View>

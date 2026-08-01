@@ -47,6 +47,10 @@ function RootNavigator() {
         options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
       />
       <Stack.Screen
+        name="outcome"
+        options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
+      />
+      <Stack.Screen
         name="agent"
         options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
       />

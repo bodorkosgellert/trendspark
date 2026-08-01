@@ -11,6 +11,7 @@ import { isModelConfigured } from '@/lib/openai';
 import { palette } from '@/lib/palette';
 import { VOICES, usePrefsStore } from '@/lib/store/usePrefsStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
+import { useOutcomeStore } from '@/lib/store/useOutcomeStore';
 import { useSupportStore } from '@/lib/store/useSupportStore';
 import { euro } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -45,11 +46,13 @@ export default function YouScreen() {
   const resetSignals = useSignalStore((state) => state.reset);
   const resetSupport = useSupportStore((state) => state.reset);
   const contributedCents = useSupportStore((state) => state.contributedCents);
+  const resetOutcomes = useOutcomeStore((state) => state.reset);
 
   const startOver = () => {
     tapFeedback();
     resetSignals();
     resetSupport();
+    resetOutcomes();
     resetPrefs();
     router.replace('/onboarding');
   };
