@@ -1,42 +1,60 @@
-import { Home } from 'lucide-react-native';
+import { Activity, Bookmark, Settings, Wallet } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useThemeColor } from 'heroui-native';
-import { useUniwind } from 'uniwind';
+import { Platform } from 'react-native';
+
+import { palette } from '@/lib/palette';
 
 export default function TabLayout() {
-  const { theme } = useUniwind();
-  const [background, foreground, border, accent, muted] = useThemeColor([
-    'background',
-    'foreground',
-    'border',
-    'accent',
-    'muted',
-  ]);
-
   return (
     <>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      {/* eslint-disable-next-line react/style-prop-object -- expo-status-bar's `style` prop is a StatusBarStyle string enum ('light' | 'dark' | ...), not a React Native style object */}
+      <StatusBar style="light" backgroundColor={palette.background} />
       <Tabs
         screenOptions={{
-          headerStyle: { backgroundColor: background },
-          headerTintColor: foreground,
-          headerTitleStyle: { color: foreground },
-          headerShadowVisible: false,
-          sceneStyle: { backgroundColor: background },
+          headerShown: false,
+          sceneStyle: { backgroundColor: palette.background },
           tabBarStyle: {
-            backgroundColor: background,
-            borderTopColor: border,
+            backgroundColor: palette.canvas,
+            borderTopColor: palette.border,
+            borderTopWidth: 1,
+            elevation: 0,
+            shadowColor: 'transparent',
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            height: Platform.OS === 'web' ? 64 : undefined,
           },
-          tabBarActiveTintColor: accent,
-          tabBarInactiveTintColor: muted,
+          tabBarActiveTintColor: palette.accent,
+          tabBarInactiveTintColor: palette.inkDim,
+          tabBarLabelStyle: { fontFamily: 'Inter_500Medium', fontSize: 11 },
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => <Home color={color} size={size ?? 24} />,
+            title: 'Radar',
+            tabBarIcon: ({ color, size }) => <Activity color={color} size={size ?? 22} />,
+          }}
+        />
+        <Tabs.Screen
+          name="plays"
+          options={{
+            title: 'My plays',
+            tabBarIcon: ({ color, size }) => <Bookmark color={color} size={size ?? 22} />,
+          }}
+        />
+        <Tabs.Screen
+          name="wallet"
+          options={{
+            title: 'Credits',
+            tabBarIcon: ({ color, size }) => <Wallet color={color} size={size ?? 22} />,
+          }}
+        />
+        <Tabs.Screen
+          name="you"
+          options={{
+            title: 'You',
+            tabBarIcon: ({ color, size }) => <Settings color={color} size={size ?? 22} />,
           }}
         />
       </Tabs>

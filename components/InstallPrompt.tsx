@@ -114,7 +114,7 @@ export function InstallPrompt() {
     return (
       <View
         style={{ bottom }}
-        className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
+        className="border-border bg-panel absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
       >
         <View className="flex-1">
           <Text.Paragraph type="body-sm" weight="semibold">
@@ -135,10 +135,10 @@ export function InstallPrompt() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          className="bg-primary rounded-md px-3 py-2"
+          className="bg-accent rounded-md px-3 py-2"
           onPress={handleInstall}
         >
-          <Text.Paragraph type="body-sm" weight="semibold" className="text-primary-foreground">
+          <Text.Paragraph type="body-sm" weight="semibold" className="text-accent-foreground">
             Install
           </Text.Paragraph>
         </Pressable>
@@ -150,7 +150,7 @@ export function InstallPrompt() {
     return (
       <View
         style={{ bottom }}
-        className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
+        className="border-border bg-panel absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
       >
         <View className="flex-1">
           <Text.Paragraph type="body-sm" weight="semibold">

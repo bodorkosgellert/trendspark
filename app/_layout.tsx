@@ -23,9 +23,37 @@ import {
 } from 'expo-router';
 
 import { initPostHog } from '@/lib/posthog';
+import { palette } from '@/lib/palette';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
 import { InstallPrompt } from '@/components/InstallPrompt';
+
+function RootNavigator() {
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: palette.background },
+      }}
+    >
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="signal/[id]" />
+      <Stack.Screen
+        name="briefing"
+        options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
+      />
+      <Stack.Screen
+        name="paywall"
+        options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
+      />
+      <Stack.Screen
+        name="agent"
+        options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
+      />
+      <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+    </Stack>
+  );
+}
 
 /**
  * Custom ErrorBoundary that reports React render errors to the parent window (Bilt preview iframe)
@@ -43,8 +71,9 @@ function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 export { ErrorBoundary };
 
-// Starter is light-only by default. Remove this when implementing requested dark mode.
-Uniwind.setTheme('light');
+// TrendSpark is a dark-locked "demand terminal". Tokens for both variants live
+// in global.css so HeroUI resolves consistently, but the runtime stays dark.
+Uniwind.setTheme('dark');
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -141,9 +170,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <HeroUINativeProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ title: 'Habits', headerShown: false }} />
-        </Stack>
+        <RootNavigator />
         <InstallPrompt />
       </HeroUINativeProvider>
     </GestureHandlerRootView>
