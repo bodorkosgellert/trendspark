@@ -1,6 +1,48 @@
-# Welcome to your Bilt project
+# TrendSpark
 
 [![Built with Bilt](https://img.shields.io/endpoint?url=https%3A%2F%2Fapp.bilt.me%2Fapi%2Fbadge)](https://bilt.me)
+
+**Rising search demand, turned into a same-day money play for one person working alone.**
+
+A 60-second spoken briefing (ElevenLabs) over the three hottest signals in the niches you track, on
+top of a ranked radar feed. Signal data is free — momentum, volume, competition, decay window, why it
+is rising. The playbook for each signal (steps, angles, monetization, ready-to-post copy) costs one
+credit. Humans buy credit packs or a plan through the app store; agents pay per request over an
+x402-priced HTTP API.
+
+- Full product spec: **[docs/PRD.md](docs/PRD.md)**
+- Stack: Expo · React Native · Expo Router · TypeScript · zustand + AsyncStorage · HeroUI Native ·
+  Uniwind · ElevenLabs TTS · OpenAI `gpt-4o-mini`
+- No backend, no accounts. All state is on-device; store purchases are simulated in this build.
+
+### Run it
+
+```sh
+npm install
+npx expo start   # scan the QR code with Expo Go
+```
+
+Optional `.env` — the app is fully navigable without either key:
+
+```
+EXPO_PUBLIC_ELEVENLABS_API_KEY=   # unset: briefing runs on a synthetic timeline ("Transcript mode")
+EXPO_PUBLIC_OPENAI_API_KEY=       # unset: seeded playbooks are used, Regenerate is hidden
+```
+
+### Where things live
+
+| Path | Contents |
+| --- | --- |
+| `app/(tabs)` | Radar · My plays · Credits · You |
+| `app/signal/[id].tsx` | Signal / Playbook / First move tabs |
+| `app/briefing.tsx` | Voice briefing player |
+| `app/paywall.tsx` | Plans and credit packs |
+| `app/agent.tsx` | x402 machine-access lane |
+| `lib/data/signals.ts` | 20 seeded signals, offline fallback and demo dataset |
+| `lib/store/` | `usePrefsStore` · `useSignalStore` · `useWalletStore` |
+| `lib/elevenlabs.ts`, `lib/openai.ts` | The only two external call sites |
+
+---
 
 ## Project info
 
