@@ -1,3 +1,4 @@
+import { hashId, mulberry32 } from '@/lib/random';
 import type { Signal } from '@/lib/types';
 
 /** Days of interest history the timeline can show. */
@@ -7,26 +8,6 @@ export const HISTORY_DAYS = 90;
 export const TIMELINE_RANGES = [14, 30, 90] as const;
 
 const DAY = 24 * 60 * 60 * 1000;
-
-function hashId(id: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < id.length; index += 1) {
-    hash ^= id.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-/** Small deterministic PRNG so a signal's back-history never changes between renders. */
-function mulberry32(seed: number): () => number {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /**
  * Extends a signal's 14 tracked points back to {@link HISTORY_DAYS} so a user can

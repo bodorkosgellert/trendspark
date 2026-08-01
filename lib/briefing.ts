@@ -1,6 +1,7 @@
 import { NICHE_LABEL } from '@/lib/data/catalog';
 import { competitionLabel, formatMomentum, formatVolume } from '@/lib/format';
-import type { Signal } from '@/lib/types';
+import { compareToGlobal, marketMomentum, relationTo, type MarketComparison } from '@/lib/markets';
+import type { MarketLens, Signal } from '@/lib/types';
 
 export interface BriefingLine {
   id: string;
@@ -32,29 +33,48 @@ function greeting(): string {
   return 'Good evening';
 }
 
+/** One spoken sentence about whether the local market is early or late. */
+function timingSentence(comparison: MarketComparison): string {
+  const days = Math.abs(comparison.leadDays);
+  if (comparison.kind === 'in-step') return '';
+  if (comparison.kind === 'local-first') {
+    return ` It broke in ${comparison.localLabel} about ${days} days before the global curve, so you would be early everywhere else.`;
+  }
+  return ` The rest of the world moved on this about ${days} days ago, so this is a catch-up play rather than a discovery.`;
+}
+
 /**
  * Builds today's spoken briefing from the top signals. The same text is sent to
  * ElevenLabs when a key is configured, and drives the synthetic timeline when
  * it is not, so the transcript and audio never drift apart.
  */
-export function buildBriefing(signals: Signal[]): BriefingScript {
+export function buildBriefing(signals: Signal[], lens: MarketLens): BriefingScript {
   const picks = signals.slice(0, 3);
+  const market = lens.active;
   const parts: { text: string; signalId: string | null }[] = [];
 
   parts.push({
     signalId: null,
-    text: `${greeting()}. ${picks.length} signals moved enough to matter since yesterday.`,
+    text: `${greeting()}. ${picks.length} signals moved enough to matter in ${market.label} since yesterday.`,
   });
 
   picks.forEach((signal, index) => {
     const order = index === 0 ? 'First' : index === 1 ? 'Second' : 'Third';
+    const comparison = compareToGlobal(signal, lens);
+    const relation = relationTo(signal, market);
+    const transfer =
+      relation === 'template'
+        ? ` It was measured in ${signal.region} rather than ${market.label}, so treat it as a template.`
+        : '';
     parts.push({
       signalId: signal.id,
       text:
         `${order}. ${signal.keyword}, in ${NICHE_LABEL[signal.niche] ?? signal.niche}. ` +
-        `Up ${formatMomentum(signal.momentum)} on roughly ${formatVolume(signal.volume)} searches a month, ${signal.region}. ` +
+        `Up ${formatMomentum(marketMomentum(signal, market))} on roughly ${formatVolume(signal.volume)} searches a month, ${signal.region}. ` +
         `${competitionLabel(signal.competition).toLowerCase()}, and the window closes in about ${signal.peakInDays} days. ` +
-        signal.why,
+        signal.why +
+        transfer +
+        timingSentence(comparison),
     });
   });
 

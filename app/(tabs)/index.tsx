@@ -5,13 +5,16 @@ import { Redirect, router } from 'expo-router';
 import { Heart, Radar as RadarIcon, X } from 'lucide-react-native';
 
 import { BriefingHero } from '@/components/BriefingHero';
+import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { SectionLabel } from '@/components/SectionLabel';
 import { SignalCard } from '@/components/SignalCard';
 import { SupportPill } from '@/components/SupportPill';
 import { AppText } from '@/components/ui/Text';
+import { useMarketLens } from '@/hooks/useMarketLens';
 import { buildBriefing } from '@/lib/briefing';
-import { rankByHeat, scopeSignals } from '@/lib/feed';
+import { observedCount, rankForMarket, scopeSignals } from '@/lib/feed';
 import { tapFeedback } from '@/lib/haptics';
+import { marketBlurb } from '@/lib/markets';
 import { palette } from '@/lib/palette';
 import { usePrefsStore } from '@/lib/store/usePrefsStore';
 import { isWatched, useSignalStore } from '@/lib/store/useSignalStore';
@@ -40,6 +43,8 @@ function openPlaybook(signal: Signal) {
 export default function RadarScreen() {
   const onboarded = usePrefsStore((state) => state.onboarded);
   const niches = usePrefsStore((state) => state.niches);
+  const setMarketScope = usePrefsStore((state) => state.setMarketScope);
+  const lens = useMarketLens();
   const openedIds = useSignalStore((state) => state.openedIds);
   const dismissedIds = useSignalStore((state) => state.dismissedIds);
   const watched = useSignalStore((state) => state.watched);
@@ -56,19 +61,32 @@ export default function RadarScreen() {
 
   const feed = useMemo(() => {
     if (filter === 'open') {
-      return rankByHeat(scoped.filter((signal) => signal.competition !== 'high'));
+      return rankForMarket(
+        scoped.filter((signal) => signal.competition !== 'high'),
+        lens.active,
+      );
     }
     if (filter === 'closing') {
       return [...scoped]
         .filter((signal) => signal.peakInDays <= 14)
         .sort((a, b) => a.peakInDays - b.peakInDays);
     }
-    return rankByHeat(scoped);
-  }, [scoped, filter]);
+    return rankForMarket(scoped, lens.active);
+  }, [scoped, filter, lens]);
 
-  const top = useMemo(() => rankByHeat(scoped).slice(0, 3), [scoped]);
+  const top = useMemo(() => rankForMarket(scoped, lens.active).slice(0, 3), [scoped, lens]);
 
-  const script = useMemo(() => buildBriefing(top), [top]);
+  const script = useMemo(() => buildBriefing(top, lens), [top, lens]);
+
+  /** Measured-here counts for the switcher, recomputed when the city changes. */
+  const counts = useMemo(
+    () =>
+      lens.markets.reduce<Record<string, number>>((acc, market) => {
+        acc[market.id] = observedCount(scoped, market);
+        return acc;
+      }, {}),
+    [scoped, lens],
+  );
 
   if (!onboarded) {
     return <Redirect href="/onboarding" />;
@@ -81,9 +99,14 @@ export default function RadarScreen() {
       <View className="pt-safe-offset-3 border-border bg-canvas flex-row items-center justify-between border-b px-5 pb-3">
         <View className="flex-row items-center gap-2">
           <RadarIcon color={palette.accent} size={18} />
-          <AppText weight="bold" className="text-foreground text-[17px]">
-            TrendSpark
-          </AppText>
+          <View>
+            <AppText weight="bold" className="text-foreground text-[17px]">
+              TrendSpark
+            </AppText>
+            <AppText weight="medium" className="text-ink-dim text-[11px]">
+              Reading {lens.active.label}
+            </AppText>
+          </View>
         </View>
         <SupportPill onPress={() => router.push('/contribute')} />
       </View>
@@ -146,6 +169,19 @@ export default function RadarScreen() {
               </View>
             ) : null}
 
+            <View className="gap-2">
+              <MarketSwitcher
+                lens={lens}
+                onScope={setMarketScope}
+                onChangeCity={() => router.push('/market')}
+                counts={counts}
+              />
+              <AppText className="text-ink-dim px-1 text-[11px] leading-4">
+                {marketBlurb(lens.active, counts[lens.active.id] ?? 0)} Every signal is scored as
+                this market reads it, with the global curve alongside it.
+              </AppText>
+            </View>
+
             <View className="flex-row gap-2">
               {FILTERS.map((item) => {
                 const active = filter === item.id;
@@ -174,12 +210,15 @@ export default function RadarScreen() {
               })}
             </View>
 
-            <SectionLabel hint={`${feed.length} live`}>Signals</SectionLabel>
+            <SectionLabel hint={`${feed.length} live`}>
+              {`Signals in ${lens.active.label}`}
+            </SectionLabel>
           </View>
         }
         renderItem={({ item }) => (
           <SignalCard
             signal={item}
+            lens={lens}
             opened={openedIds.includes(item.id)}
             watching={isWatched(watched, item.id)}
             onToggleWatch={() => {

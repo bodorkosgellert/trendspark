@@ -1172,6 +1172,492 @@ export const SIGNALS: Signal[] = [
       ],
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // Berlin. City-level signals: small volumes, thin competition, and the kind of
+  // administrative friction that only exists in one place — which is exactly why
+  // nobody has bothered to rank for it.
+  // ---------------------------------------------------------------------------
+
+  {
+    id: 'sig-anmeldung-termin',
+    keyword: 'anmeldung termin berlin bekommen',
+    niche: 'home',
+    momentum: 318,
+    volume: 46300,
+    competition: 'low',
+    region: 'Berlin',
+    detectedAt: hoursAgo(7),
+    peakInDays: 31,
+    series: [38, 40, 44, 47, 52, 58, 63, 69, 76, 82, 88, 93, 97, 100],
+    why: 'Bürgeramt slots are released in bursts and disappear within minutes, so the query is not "how do I register" but "how do I get a slot at all". Berlin absorbs tens of thousands of new arrivals a quarter and the frustration is structural, not seasonal.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'Berlin Service Portal release patterns'],
+    play: {
+      kind: 'local',
+      headline: 'Sell the slot, not the explanation',
+      audience:
+        'People who moved to Berlin in the last month, need an Anmeldung within two weeks, and have already failed to find an appointment',
+      steps: [
+        {
+          title: 'Log when slots actually appear',
+          detail:
+            'Check the portal on a schedule for two weeks and record every release. Two weeks of dated observations is more than any existing page has.',
+        },
+        {
+          title: 'Publish the pattern for free',
+          detail:
+            'A post naming the hours slots land ranks almost immediately, because every competing page just says keep refreshing.',
+        },
+        {
+          title: 'Charge for the alert, not the article',
+          detail:
+            'A Telegram or email ping the moment a slot opens is the part people pay for, and it costs almost nothing to run once the checker exists.',
+        },
+        {
+          title: 'Bundle the English paperwork pack',
+          detail:
+            'Wohnungsgeberbestätigung template plus the registration form translated field by field. One-off purchase attached to a recurring alert.',
+        },
+      ],
+      angles: [
+        'The hours Berlin actually releases Bürgeramt slots, logged for 14 days',
+        'Anmeldung in English: every field, plus the landlord confirmation template',
+        'Why refreshing at 9am is the worst possible strategy',
+      ],
+      monetization: {
+        model: 'Paid alerts plus a template pack',
+        estimate: '€800 to €4,000 per month',
+        note: 'Recurring by nature — this city has not fixed the problem in fifteen years. Keep the alert cheap and monthly, the pack one-off.',
+      },
+      firstPost:
+        'I checked the Berlin appointment portal every hour for two weeks and logged every slot release. They do not appear at 9am when everyone is refreshing, and there is a pattern nobody has written down. Here it is, with the Anmeldung form translated field by field and the landlord confirmation template you will also need.',
+      keywords: [
+        'anmeldung termin berlin bekommen',
+        'bürgeramt termin berlin sofort',
+        'wohnungsgeberbestätigung vorlage',
+        'anmeldung berlin english',
+      ],
+    },
+  },
+  {
+    id: 'sig-mietspiegel-check',
+    keyword: 'mietspiegel berlin mieterhöhung prüfen',
+    niche: 'finance',
+    momentum: 264,
+    volume: 31800,
+    competition: 'low',
+    region: 'Berlin',
+    detectedAt: hoursAgo(11),
+    peakInDays: 23,
+    series: [26, 29, 31, 36, 42, 49, 57, 64, 72, 80, 87, 92, 96, 100],
+    why: 'A revised rent index landed and every landlord letter that follows it becomes a search. People are checking a number against a table they cannot read, with real money attached — the highest-intent local query there is.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'Berlin Mietspiegel publication'],
+    play: {
+      kind: 'product',
+      headline: 'Turn the rent table into a two-minute answer',
+      audience:
+        'Berlin tenants holding a rent increase letter who want to know whether it is lawful before they reply',
+      steps: [
+        {
+          title: 'Rebuild the table as a form',
+          detail:
+            'Postcode, size, year built, fittings in — permitted range out. The fact that the official version is an unreadable PDF is the entire opportunity.',
+        },
+        {
+          title: 'Show the working',
+          detail:
+            'Print the comparison and the paragraph it comes from. A checkable answer is both more persuasive and safer than a verdict.',
+        },
+        {
+          title: 'End on a letter, not a number',
+          detail:
+            'A polite objection template with the calculation attached converts far better than a result screen. The user came here to reply to someone.',
+        },
+        {
+          title: 'Monetise the escalation',
+          detail:
+            'Tenant association referral plus a paid document check for the complicated cases. Free calculator, paid follow-through.',
+        },
+      ],
+      angles: [
+        'Is your Berlin rent increase legal? Three numbers, one answer',
+        'The rent index in plain German, without opening the PDF',
+        'The objection letter that gets an increase withdrawn',
+      ],
+      monetization: {
+        model: 'Association referral plus paid document check',
+        estimate: '€1,200 to €6,000 per month',
+        note: 'One-off intent per user but enormous volume, and it refreshes with every index revision. Never phrase the output as legal advice — state the rule and cite it.',
+      },
+      firstPost:
+        'Der neue Mietspiegel ist da und die Tabelle ist praktisch unlesbar. Ich habe sie in ein Formular gebaut: Postleitzahl, Größe, Baujahr, Ausstattung rein — heraus kommt die zulässige Spanne, die Rechnung dazu und ein Widerspruchsschreiben, falls die Erhöhung darüber liegt.',
+      keywords: [
+        'mietspiegel berlin mieterhöhung prüfen',
+        'mieterhöhung widerspruch vorlage',
+        'mietspiegel berlin tabelle erklärt',
+        'ortsübliche vergleichsmiete berechnen',
+      ],
+    },
+  },
+  {
+    id: 'sig-kita-gutschein',
+    keyword: 'kita gutschein berlin antrag online',
+    niche: 'home',
+    momentum: 176,
+    volume: 19400,
+    competition: 'low',
+    region: 'Berlin',
+    detectedAt: hoursAgo(20),
+    peakInDays: 38,
+    series: [44, 45, 48, 51, 55, 59, 63, 68, 74, 80, 86, 91, 96, 100],
+    why: 'Two separate processes — the voucher from the district and the place from the nursery — run on different clocks, and parents discover the deadline late. Two systems and one panicking audience is a guide, not a blog post.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'Berlin Jugendamt guidance'],
+    play: {
+      kind: 'local',
+      headline: 'One timeline that covers the voucher and the place together',
+      audience: 'Berlin parents nine to twelve months away from needing childcare',
+      steps: [
+        {
+          title: 'Draw the two tracks on one calendar',
+          detail:
+            'Voucher application on one line, nursery waiting lists on the other, counted backwards from the start date. Nobody publishes them together.',
+        },
+        {
+          title: 'Write the enquiry message',
+          detail:
+            'A short German message parents can send to twenty nurseries at once, with the fields to fill in marked. This is the asset that gets shared.',
+        },
+        {
+          title: 'Map the districts honestly',
+          detail:
+            'Which districts process quickly and which do not, with dates from real parents. Specificity is what makes this outrank the official page.',
+        },
+        {
+          title: 'Monetise with listings and a tracker',
+          detail:
+            'Nurseries with open places will pay to be found. A paid deadline tracker suits parents who are twelve months out.',
+        },
+      ],
+      angles: [
+        'The Berlin childcare timeline, counted backwards from your start date',
+        'The message to send twenty nurseries, in German, ready to paste',
+        'Which districts actually process a voucher quickly',
+      ],
+      monetization: {
+        model: 'Sponsored listings plus a paid deadline tracker',
+        estimate: '€500 to €2,500 per month',
+        note: 'Long window and a calm audience — this is a compounding page rather than a spike, and it renews with every new intake year.',
+      },
+      firstPost:
+        'Kita-Gutschein und Kita-Platz sind zwei getrennte Prozesse mit zwei verschiedenen Fristen, und das merken die meisten zu spät. Ich habe beide auf einen Zeitplan gelegt, rückwärts gerechnet vom Betreuungsbeginn, mit der Anfrage-Nachricht zum Kopieren.',
+      keywords: [
+        'kita gutschein berlin antrag online',
+        'kita platz berlin warteliste',
+        'kita gutschein bearbeitungszeit bezirk',
+        'kita anfrage vorlage berlin',
+      ],
+    },
+  },
+  {
+    id: 'sig-wohnung-mappe',
+    keyword: 'bewerbungsmappe wohnung berlin vorlage',
+    niche: 'home',
+    momentum: 231,
+    volume: 16800,
+    competition: 'low',
+    region: 'Berlin',
+    detectedAt: hoursAgo(14),
+    peakInDays: 26,
+    series: [31, 33, 37, 40, 46, 52, 58, 65, 72, 79, 86, 92, 97, 100],
+    why: 'Viewings here now run dozens of applicants deep, so the search has moved from finding a flat to winning the one you already saw. Competitive desperation with a deadline converts better than curiosity.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'Google results thinness'],
+    play: {
+      kind: 'product',
+      headline: 'Sell the folder that wins the viewing',
+      audience:
+        'People who just stood in a Berlin viewing queue with forty other applicants and want to be the one who gets called',
+      steps: [
+        {
+          title: 'Assemble the complete folder',
+          detail:
+            'Cover sheet, SCHUFA, three payslips, employer letter, previous landlord confirmation, ID. Say what each one must show, not just that it is needed.',
+        },
+        {
+          title: 'Give it a one-page cover sheet',
+          detail:
+            'A single page an agent can read in ten seconds is what actually separates applicants. Design it and give it away as a template.',
+        },
+        {
+          title: 'Translate for the international applicant',
+          detail:
+            'Most competing pages assume a German employment history. Cover freelancers and new arrivals, in English, and you own a segment nobody addresses.',
+        },
+        {
+          title: 'Monetise the pack, refer the credit check',
+          detail:
+            'Paid editable template bundle plus a credit report affiliate — a document everyone in this queue has to buy anyway.',
+        },
+      ],
+      angles: [
+        'The one-page cover sheet that gets you called back',
+        'The Berlin flat application folder, complete, in German and English',
+        'Applying as a freelancer: what to send instead of payslips',
+      ],
+      monetization: {
+        model: 'Template pack plus credit report affiliate',
+        estimate: '€700 to €3,500 per month',
+        note: 'Buyers are mid-panic and price-insensitive. Keep the free version genuinely complete or the paid pack looks like a hostage fee.',
+      },
+      firstPost:
+        'Bei der letzten Besichtigung standen vierzig Leute in der Schlange. Entschieden hat am Ende nicht das Einkommen, sondern die Mappe. Hier ist die komplette Liste, was hineingehört, plus das einseitige Deckblatt, das die Maklerin in zehn Sekunden lesen kann — auch als englische Version für Freiberufler.',
+      keywords: [
+        'bewerbungsmappe wohnung berlin vorlage',
+        'mieterselbstauskunft vorlage',
+        'schufa auskunft wohnung berlin',
+        'wohnungsbewerbung freiberufler unterlagen',
+      ],
+    },
+  },
+  {
+    id: 'sig-freelancer-steuer',
+    keyword: 'freiberufler steuererklärung berlin elster',
+    niche: 'finance',
+    momentum: 208,
+    volume: 24900,
+    competition: 'medium',
+    region: 'Berlin',
+    detectedAt: hoursAgo(9),
+    peakInDays: 15,
+    series: [33, 35, 38, 43, 49, 56, 62, 70, 77, 84, 90, 95, 98, 100],
+    why: 'Deadline-driven, and this city holds an unusually large population of freelancers who work entirely in English but must file entirely in German. A language gap plus a hard date is a reliable payer.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'r/germany'],
+    play: {
+      kind: 'content',
+      headline: 'File it once on camera, in English, with the German fields on screen',
+      audience:
+        'English-speaking freelancers registered in Berlin facing their first or second tax return',
+      steps: [
+        {
+          title: 'Record one complete filing',
+          detail:
+            'Screen recording of the real portal, every field, with the German label and the English explanation side by side. Nobody has shipped this well.',
+        },
+        {
+          title: 'Handle the two questions everyone asks',
+          detail:
+            'Which expenses actually count, and what happens with VAT under the small-business rule. These two carry most of the search volume.',
+        },
+        {
+          title: 'Publish a deadline and penalty page',
+          detail:
+            'Dates, extensions, and what late actually costs. Short, factual, and it ranks for a term people search in a hurry.',
+        },
+        {
+          title: 'Monetise with tool affiliate plus a checklist',
+          detail:
+            'Filing tools pay well and recur annually. A paid expense-category checklist for freelancers converts alongside it.',
+        },
+      ],
+      angles: [
+        'Filing a German tax return in English: every field, on screen',
+        'What a Berlin freelancer can actually deduct, with the German terms',
+        'Deadlines, extensions and what being late really costs',
+      ],
+      monetization: {
+        model: 'Filing tool affiliate plus a paid checklist',
+        estimate: '€900 to €4,500 per month',
+        note: 'Annual and repeatable, but the window is genuinely narrow — after the deadline the traffic goes to almost nothing until next spring.',
+      },
+      firstPost:
+        'I filed my German tax return as a freelancer in Berlin and recorded the whole thing. Every field, with the German label and what it actually means in English, plus the two questions everyone gets stuck on: which expenses count, and what the small-business VAT rule does to your invoices.',
+      keywords: [
+        'freiberufler steuererklärung berlin elster',
+        'freelancer tax return germany english',
+        'kleinunternehmerregelung umsatzsteuer freelancer',
+        'betriebsausgaben freiberufler liste',
+      ],
+    },
+  },
+  {
+    id: 'sig-padel-berlin',
+    keyword: 'padel platz berlin buchen',
+    niche: 'fitness',
+    momentum: 364,
+    volume: 12700,
+    competition: 'low',
+    region: 'Berlin',
+    detectedAt: hoursAgo(4),
+    peakInDays: 11,
+    series: [14, 16, 19, 24, 30, 37, 45, 54, 63, 73, 82, 90, 96, 100],
+    why: 'Courts opened faster than anyone built booking software for them, and every operator runs a different system. Fragmented supply against a vertical demand curve is a directory, not an article.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'Instagram location tags'],
+    play: {
+      kind: 'product',
+      headline: 'Be the one page that shows every court and who has space tonight',
+      audience:
+        'Berliners who want to play this week and are currently checking six separate sites',
+      steps: [
+        {
+          title: 'List every court with the real detail',
+          detail:
+            'Location, indoor or outdoor, price per hour, whether racket rental exists, and which app it books through. Twenty minutes per venue, once.',
+        },
+        {
+          title: 'Add tonight availability',
+          detail:
+            'Even a manually refreshed "who has space this evening" beats every operator site, because none of them know about each other.',
+        },
+        {
+          title: 'Solve the fourth player',
+          detail:
+            'The real blocker is not the court, it is finding four people. A simple match board is the reason people come back weekly.',
+        },
+        {
+          title: 'Monetise listings and referrals',
+          detail:
+            'Operators pay to be listed once you send bookings. Racket and shoe affiliate covers the rest.',
+        },
+      ],
+      angles: [
+        'Every padel court in Berlin, with prices, on one page',
+        'Who has a free court tonight',
+        'Need a fourth? The Berlin padel match board',
+      ],
+      monetization: {
+        model: 'Operator listings plus booking referral',
+        estimate: '€400 to €2,200 per month',
+        note: 'Short window: as operators consolidate onto one booking platform, the aggregation gap closes. Move now or not at all.',
+      },
+      firstPost:
+        'Six different websites, four different booking apps, and none of them tell you where there is a free court tonight. So I listed every padel court in Berlin on one page — price, indoor or outdoor, rackets or not — and added a board for finding a fourth player.',
+      keywords: [
+        'padel platz berlin buchen',
+        'padel berlin preise vergleich',
+        'padel mitspieler berlin finden',
+        'padel halle berlin indoor',
+      ],
+    },
+  },
+  {
+    id: 'sig-berlin-builder-nights',
+    keyword: 'ai hackathon berlin anmelden',
+    niche: 'ai-tools',
+    momentum: 402,
+    volume: 8900,
+    competition: 'low',
+    region: 'Berlin',
+    detectedAt: hoursAgo(3),
+    peakInDays: 7,
+    series: [10, 12, 15, 19, 25, 32, 41, 50, 61, 72, 82, 90, 96, 100],
+    why: 'Every demo night and hackathon in this city produces a burst of people looking for the next one, and no single calendar covers them. Recurring attention at nearly zero content cost, and the audience is the most valuable one there is: people who ship.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'Hacker News', 'Product Hunt'],
+    play: {
+      kind: 'content',
+      headline: 'Own the calendar nobody maintains',
+      audience:
+        'Builders, founders and engineers in Berlin who keep hearing about events after they happened',
+      steps: [
+        {
+          title: 'Start with one honest weekly list',
+          detail:
+            'Every AI and builder event in the city, dated, with whether it is worth going. An opinion is what makes a listing page readable.',
+        },
+        {
+          title: 'Publish the day after, not the week before',
+          detail:
+            'Short write-ups of what actually got demoed. That is the content organisers link to, which is how the calendar becomes the default.',
+        },
+        {
+          title: 'Turn it into one email',
+          detail:
+            'A Thursday email is the whole product. The website is just the archive that makes people subscribe.',
+        },
+        {
+          title: 'Monetise sponsorship, then hiring',
+          detail:
+            'Tooling companies pay to reach this list. A jobs section works once it passes a few thousand subscribers, not before.',
+        },
+      ],
+      angles: [
+        'Every AI event in Berlin this week, and which one to actually attend',
+        'What got demoed last night',
+        'The Berlin builder calendar nobody was maintaining',
+      ],
+      monetization: {
+        model: 'Newsletter sponsorship plus a paid job board',
+        estimate: '€300 to €2,000 per month',
+        note: 'Slow to monetise and it lives or dies on you showing up weekly. The upside is the audience quality, not the size.',
+      },
+      firstPost:
+        'I kept hearing about Berlin AI events the day after they happened, so I started a list. Everything on this week, dated, with a note on whether it is worth your evening — and a write-up of what actually got demoed the night before.',
+      keywords: [
+        'ai hackathon berlin anmelden',
+        'ai meetup berlin diese woche',
+        'berlin tech events kalender',
+        'berlin startup demo night',
+      ],
+    },
+  },
+  {
+    id: 'sig-berghain-guide',
+    keyword: 'berghain einlass tipps',
+    niche: 'travel',
+    momentum: 142,
+    volume: 58600,
+    competition: 'high',
+    region: 'Berlin',
+    detectedAt: hoursAgo(26),
+    peakInDays: 44,
+    series: [58, 60, 63, 65, 69, 73, 77, 81, 85, 89, 93, 96, 98, 100],
+    portable: false,
+    why: 'Permanent volume with a summer lift, and the single most-searched Berlin question by visitors. It is here as a counter-example: enormous interest with no gap left in it, which is why the ranking pushes it down rather than up.',
+    sources: ['Google Trends Berlin', 'r/berlin', 'YouTube search suggest'],
+    play: {
+      kind: 'affiliate',
+      headline: 'The honest version of a topic everyone has already written badly',
+      audience: 'Visitors planning a first Berlin weekend who have read four contradictory guides',
+      steps: [
+        {
+          title: 'Lead with what is not true',
+          detail:
+            'Most of this genre is invented. A page that names the myths and says plainly that there is no dress code formula is differentiated by honesty alone.',
+        },
+        {
+          title: 'Go wide, not deep',
+          detail:
+            'One club cannot carry a business. Cover the whole night — where to go first, what closes when, how to get home — and the door question becomes the entry point.',
+        },
+        {
+          title: 'Be useful at 2am',
+          detail:
+            'Transport, cash, cloakroom, phone camera rules. Practical detail is what earns the return visit and the share.',
+        },
+        {
+          title: 'Monetise indirectly',
+          detail:
+            'City pass and accommodation affiliate, plus a paid weekend itinerary. There is no product to sell at the door itself.',
+        },
+      ],
+      angles: [
+        'No, there is no dress code formula',
+        'A Berlin night that does not depend on getting into one club',
+        'The 2am practicalities nobody writes about',
+      ],
+      monetization: {
+        model: 'City guide affiliate plus a paid itinerary',
+        estimate: '€200 to €1,500 per month',
+        note: 'Crowded and getting worse. Included deliberately: high volume with no opening is not a play, and the feed should show you that rather than hide it.',
+      },
+      firstPost:
+        'Almost everything written about getting into Berlin clubs is invented, including the dress code rules. Here is what is actually true, what nobody tells you about 2am transport and cash, and a night plan that does not fall apart if one door says no.',
+      keywords: [
+        'berghain einlass tipps',
+        'berlin club guide first time',
+        'berlin nightlife weekend plan',
+        'berlin clubs no dress code myth',
+      ],
+    },
+  },
 ];
 
 export function getSignalById(id: string): Signal | undefined {

@@ -3,10 +3,13 @@ import { router } from 'expo-router';
 import { Bell, Check, Clock, Mic, RotateCcw } from 'lucide-react-native';
 
 import { SectionLabel } from '@/components/SectionLabel';
+import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { AppText } from '@/components/ui/Text';
+import { useMarketLens } from '@/hooks/useMarketLens';
 import { NICHES } from '@/lib/data/catalog';
 import { isVoiceConfigured } from '@/lib/elevenlabs';
 import { tapFeedback } from '@/lib/haptics';
+import { geoNote } from '@/lib/markets';
 import { isModelConfigured } from '@/lib/openai';
 import { palette } from '@/lib/palette';
 import { VOICES, usePrefsStore } from '@/lib/store/usePrefsStore';
@@ -34,6 +37,8 @@ function Toggle({ value }: { value: boolean }) {
 export default function YouScreen() {
   const niches = usePrefsStore((state) => state.niches);
   const toggleNiche = usePrefsStore((state) => state.toggleNiche);
+  const setMarketScope = usePrefsStore((state) => state.setMarketScope);
+  const lens = useMarketLens();
   const voiceId = usePrefsStore((state) => state.voiceId);
   const setVoice = usePrefsStore((state) => state.setVoice);
   const briefingHour = usePrefsStore((state) => state.briefingHour);
@@ -95,6 +100,22 @@ export default function YouScreen() {
               {euro(contributedCents)}
             </AppText>
           </View>
+        </View>
+
+        <View className="gap-3">
+          <SectionLabel hint={lens.active.label}>Home market</SectionLabel>
+          <MarketSwitcher
+            lens={lens}
+            onScope={setMarketScope}
+            onChangeCity={() => {
+              router.push('/market');
+            }}
+          />
+          <AppText className="text-ink-dim text-[11px] leading-4">
+            Type any city and the feed, the ranking and the briefing are read through it. Every
+            signal still shows the global curve next to the local one, so you can see whether you
+            are early or late. {geoNote(lens.city)}
+          </AppText>
         </View>
 
         <View className="gap-3">

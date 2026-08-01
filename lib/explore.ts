@@ -1,9 +1,10 @@
 import { Linking } from 'react-native';
 
-import type { Signal } from '@/lib/types';
+import type { Market, Region, Signal } from '@/lib/types';
 
 /** Google Trends geo codes for the regions the seeded feed uses. */
-const GEO: Record<string, string> = {
+const GEO: Record<Region, string> = {
+  Berlin: 'DE-BE',
   Germany: 'DE',
   Europe: '',
   Global: '',
@@ -20,8 +21,20 @@ function q(value: string): string {
   return encodeURIComponent(value);
 }
 
-export function trendsUrl(keyword: string, region = 'Global', months = 3): string {
+export function trendsUrl(keyword: string, region: Region = 'Global', months = 3): string {
   const geo = GEO[region] ?? '';
+  const range = `today ${months}-m`;
+  return `https://trends.google.com/trends/explore?q=${q(keyword)}&date=${q(range)}${
+    geo ? `&geo=${geo}` : ''
+  }`;
+}
+
+/**
+ * The same curve at source, for one market. A city Trends cannot break out falls
+ * back to the coarsest code it does report, which is why `geoNote` exists.
+ */
+export function marketTrendsUrl(keyword: string, market: Market, months = 3): string {
+  const geo = market.geo;
   const range = `today ${months}-m`;
   return `https://trends.google.com/trends/explore?q=${q(keyword)}&date=${q(range)}${
     geo ? `&geo=${geo}` : ''
@@ -77,8 +90,20 @@ export function sourceUrl(source: string, keyword: string): string | null {
     return `https://www.reddit.com/${source}/search/?q=${q(keyword)}&restrict_sr=1&sort=new`;
   }
   if (name.includes('google trends')) {
-    const region = name.includes('germany') || name.includes('berlin') ? 'Germany' : 'Global';
+    const region: Region = name.includes('berlin')
+      ? 'Berlin'
+      : name.includes('germany')
+        ? 'Germany'
+        : 'Global';
     return trendsUrl(keyword, region);
+  }
+  if (
+    name.includes('berlin.de') ||
+    name.includes('service portal') ||
+    name.includes('jugendamt') ||
+    name.includes('mietspiegel')
+  ) {
+    return `https://www.berlin.de/suche/?q=${q(keyword)}`;
   }
   if (name.includes('hacker news')) return `https://hn.algolia.com/?q=${q(keyword)}`;
   if (name.includes('github')) return `https://github.com/search?q=${q(keyword)}&type=repositories`;

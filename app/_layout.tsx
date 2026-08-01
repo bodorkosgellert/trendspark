@@ -54,6 +54,10 @@ function RootNavigator() {
         name="agent"
         options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
       />
+      <Stack.Screen
+        name="market"
+        options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
+      />
       <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
     </Stack>
   );

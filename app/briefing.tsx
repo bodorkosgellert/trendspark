@@ -7,6 +7,7 @@ import { SectionLabel } from '@/components/SectionLabel';
 import { Waveform } from '@/components/Waveform';
 import { AppText } from '@/components/ui/Text';
 import { useBriefingPlayer } from '@/hooks/useBriefingPlayer';
+import { useMarketLens } from '@/hooks/useMarketLens';
 import { buildBriefing, formatClock } from '@/lib/briefing';
 import { RUN_COST_CENTS } from '@/lib/data/catalog';
 import { isVoiceConfigured } from '@/lib/elevenlabs';
@@ -22,11 +23,15 @@ import { cn } from '@/lib/utils';
 export default function BriefingScreen() {
   const niches = usePrefsStore((state) => state.niches);
   const voiceId = usePrefsStore((state) => state.voiceId);
+  const lens = useMarketLens();
   const dismissedIds = useSignalStore((state) => state.dismissedIds);
   const record = useSupportStore((state) => state.record);
 
-  const signals = useMemo(() => topSignals(niches, dismissedIds), [niches, dismissedIds]);
-  const script = useMemo(() => buildBriefing(signals), [signals]);
+  const signals = useMemo(
+    () => topSignals(niches, dismissedIds, lens.active),
+    [niches, dismissedIds, lens],
+  );
+  const script = useMemo(() => buildBriefing(signals, lens), [signals, lens]);
   const player = useBriefingPlayer(script, voiceId);
 
   const playing = player.state === 'playing';

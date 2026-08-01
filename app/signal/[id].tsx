@@ -9,6 +9,7 @@ import {
   Eye,
   Flag,
   Heart,
+  Info,
   Sparkles,
   Target,
   ThumbsDown,
@@ -16,17 +17,20 @@ import {
 } from 'lucide-react-native';
 
 import { MomentumBadge } from '@/components/MomentumBadge';
+import { MarketCompare } from '@/components/MarketCompare';
 import { SectionLabel } from '@/components/SectionLabel';
 import { SourceLinks } from '@/components/SourceLinks';
 import { TagRow } from '@/components/TagRow';
 import { TrendTimeline } from '@/components/TrendTimeline';
 import { AppText } from '@/components/ui/Text';
+import { useMarketLens } from '@/hooks/useMarketLens';
 import { archiveFor, flaggedLabel, stageLabel } from '@/lib/archive';
 import { NICHE_LABEL } from '@/lib/data/catalog';
 import { getSignalById } from '@/lib/data/signals';
 import { competitionLabel, detectedLabel, formatVolume, playKindLabel } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { isModelConfigured, regeneratePlaybook } from '@/lib/openai';
+import { marketMomentum, transferNote } from '@/lib/markets';
 import { outcomeSummaryLine, stageMeta } from '@/lib/outcomes';
 import { palette } from '@/lib/palette';
 import { shareText } from '@/lib/share';
@@ -64,6 +68,7 @@ export default function SignalDetailScreen() {
   const signal = useMemo(() => getSignalById(id), [id]);
 
   const watched = useSignalStore((state) => state.watched);
+  const lens = useMarketLens();
   const open = useSignalStore((state) => state.open);
   const toggleWatch = useSignalStore((state) => state.toggleWatch);
   const worthIt = useSupportStore((state) => state.worthIt);
@@ -101,6 +106,7 @@ export default function SignalDetailScreen() {
   const play = override ?? signal.play;
   const helped = worthIt.includes(signal.id);
   const missed = notWorthIt.includes(signal.id);
+  const transfer = transferNote(signal, lens.active);
 
   const handleRegenerate = async () => {
     if (!isModelConfigured()) return;
@@ -194,7 +200,7 @@ export default function SignalDetailScreen() {
             {signal.keyword}
           </AppText>
           <View className="flex-row items-center gap-2">
-            <MomentumBadge momentum={signal.momentum} size="lg" />
+            <MomentumBadge momentum={marketMomentum(signal, lens.active)} size="lg" />
             <View className="border-border bg-panel rounded-full border px-3 py-1.5">
               <AppText weight="medium" className="text-muted text-xs">
                 {signal.region}
@@ -213,6 +219,13 @@ export default function SignalDetailScreen() {
               router.push({ pathname: '/history', params: { tag: item.id } });
             }}
           />
+
+          {transfer ? (
+            <View className="border-border bg-panel flex-row items-start gap-2.5 rounded-2xl border p-3.5">
+              <Info color={palette.hot} size={14} />
+              <AppText className="text-muted flex-1 text-[12px] leading-5">{transfer}</AppText>
+            </View>
+          ) : null}
         </View>
 
         {tab === 'signal' ? (
@@ -409,6 +422,7 @@ function SignalTab({
   entry: WatchEntry | undefined;
   onToggleWatch: () => void;
 }) {
+  const lens = useMarketLens();
   const decay = Math.min(1, Math.max(0.08, 1 - signal.peakInDays / 30));
   const archive = useMemo(() => archiveFor(signal.id), [signal.id]);
   const [range, setRange] = useState<number>(archive && archive.flaggedDaysAgo > 24 ? 90 : 30);
@@ -464,6 +478,8 @@ function SignalTab({
           gradientId={`detail-${signal.id}`}
         />
       </View>
+
+      <MarketCompare signal={signal} lens={lens} range={range} />
 
       {archive ? (
         <View className="border-border bg-panel gap-2 rounded-2xl border p-4">

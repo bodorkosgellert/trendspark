@@ -15,8 +15,17 @@ import {
 } from '@/lib/format';
 import { palette } from '@/lib/palette';
 import { tagsFor } from '@/lib/tags';
-import type { Signal } from '@/lib/types';
+import type { MarketLens, Signal } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  compareToGlobal,
+  marketMomentum,
+  marketSeries,
+  relationBadge,
+  TIMING_TEXT_CLASS,
+  timingLabel,
+} from '@/lib/markets';
+import { signedPct } from '@/lib/watch';
 
 const TONE_CLASS = {
   hot: 'text-hot',
@@ -33,6 +42,12 @@ interface SignalCardProps {
   watching?: boolean;
   /** Adds a free track toggle to the card footer. */
   onToggleWatch?: () => void;
+  /**
+   * Read the card through one market lens: momentum, curve, the global comparison
+   * and the measured-here badge all switch. Omit it to show the signal exactly as
+   * it was observed.
+   */
+  lens?: MarketLens;
 }
 
 export function SignalCard({
@@ -42,8 +57,13 @@ export function SignalCard({
   onOpenPlaybook,
   watching = false,
   onToggleWatch,
+  lens,
 }: SignalCardProps) {
   const tone = windowTone(signal.peakInDays);
+  const comparison = lens ? compareToGlobal(signal, lens) : null;
+  const momentum = lens ? marketMomentum(signal, lens.active) : signal.momentum;
+  const series = lens ? marketSeries(signal, lens.active).slice(-14) : signal.series;
+  const badge = lens ? relationBadge(signal, lens.active) : null;
 
   return (
     <Pressable
@@ -53,18 +73,41 @@ export function SignalCard({
     >
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 gap-1">
-          <AppText
-            weight="semibold"
-            className="text-ink-dim text-[10px] uppercase"
-            style={{ letterSpacing: 1.2 }}
-          >
-            {NICHE_LABEL[signal.niche] ?? signal.niche} · {detectedLabel(signal.detectedAt)}
-          </AppText>
+          <View className="flex-row items-center gap-2">
+            <AppText
+              weight="semibold"
+              className="text-ink-dim text-[10px] uppercase"
+              style={{ letterSpacing: 1.2 }}
+            >
+              {NICHE_LABEL[signal.niche] ?? signal.niche} · {detectedLabel(signal.detectedAt)}
+            </AppText>
+            {badge ? (
+              <View
+                className={cn(
+                  'rounded-full border px-2 py-px',
+                  badge.tone === 'accent'
+                    ? 'border-accent bg-accent-soft'
+                    : 'border-border bg-panel-raised',
+                )}
+              >
+                <AppText
+                  weight="semibold"
+                  className={cn(
+                    'text-[9px] uppercase',
+                    badge.tone === 'accent' ? 'text-up' : 'text-ink-dim',
+                  )}
+                  style={{ letterSpacing: 0.8 }}
+                >
+                  {badge.label}
+                </AppText>
+              </View>
+            ) : null}
+          </View>
           <AppText weight="semibold" className="text-foreground text-[17px] leading-6">
             {signal.keyword}
           </AppText>
         </View>
-        <MomentumBadge momentum={signal.momentum} />
+        <MomentumBadge momentum={momentum} />
       </View>
 
       <View className="flex-row items-center gap-3">
@@ -84,7 +127,22 @@ export function SignalCard({
         </View>
       </View>
 
-      <Sparkline series={signal.series} gradientId={`spark-${signal.id}`} height={40} />
+      <Sparkline series={series} gradientId={`spark-${signal.id}`} height={40} />
+
+      {comparison ? (
+        <View className="flex-row items-center gap-2">
+          <AppText
+            weight="semibold"
+            className={cn('text-[11px]', TIMING_TEXT_CLASS[comparison.kind])}
+          >
+            {timingLabel(comparison)}
+          </AppText>
+          <View className="bg-grid h-1 w-1 rounded-full" />
+          <AppText weight="medium" className="text-ink-dim text-[11px]">
+            Global {signedPct(comparison.globalMomentum)}
+          </AppText>
+        </View>
+      ) : null}
 
       <TagRow tags={tagsFor(signal)} size="sm" />
 

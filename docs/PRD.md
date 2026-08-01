@@ -369,9 +369,11 @@ touches only those two actions, and each ladder rung maps to one consumable prod
 
 ### 9.1 Current state — seeded
 
-`lib/data/signals.ts` holds 20 hand-authored signals with full playbooks, spanning all ten niches and
-three regions (Global, Europe, Germany), momentum 139–920%. This is the offline fallback and the
-demo dataset; it guarantees the app works with no network and no keys.
+`lib/data/signals.ts` holds 28 hand-authored signals with full playbooks, spanning all ten niches and
+four regions (Berlin, Germany, Europe, Global), momentum 139–920%. This is the offline fallback and the
+demo dataset; it guarantees the app works with no network and no keys. Eight of the signals are
+Berlin-native — administrative friction, housing, and city-scale supply gaps — because a city-sized
+market is the only one a solo builder can plausibly win inside one window.
 
 ### 9.2 Signal schema — `lib/types.ts`
 
@@ -440,9 +442,86 @@ money.
 | **Google Shopping (Content API)**             | Free                                                                                                                  | Merchant-scoped, no public product search, and shuts down 18 Aug 2026 in favour of the Merchant API                                                         |
 | **OpenAI / Perplexity citation audits**       | Perplexity Search API $5 per 1,000 requests; Sonar $1/$1 per 1M tokens plus $5–$12 per 1,000 requests by context size | Metered but cheap at scheduled volume; measures citation _presence_, not prompt volume                                                                      |
 
-**Conclusion for v1.** Build on Keyword Planner + Trends via DataForSEO, and add LLM citation audits as
-the second axis. Reddit stays a manual research input rather than a product dependency until a
-commercial agreement is in place. TikTok and Amazon are out on eligibility, not price.
+| **GitHub REST API** | Free | 60 req/hr unauthenticated, 5,000 req/hr with a free PAT — **but Search has its own limit of 10 req/min unauthenticated, 30 req/min authenticated, and caps at 1,000 results per query** |
+| **Reddit RSS** (`.rss` on any listing/search) | Free, no auth | Real, and not a licence workaround: the same terms govern the data, feeds return ~25 items with no score or comment count, and datacenter IPs are blocked aggressively |
+| **Grounded citation audits** | OpenAI web search tool **$10 per 1,000 calls plus ~8,000 billed input tokens per search** (~1c/check); Perplexity Search API $5 per 1,000 requests | An ungrounded `gpt-4o-mini` prompt costs ~$0.0002 but measures **what the model memorised**, not what is cited today. Only the grounded version answers the question |
+
+**Corrections to the widely-quoted free-tier estimates.** Three claims circulate that do not survive
+checking, and all three would have gone on a slide:
+
+1. **"Google Trends is 100% free."** True on price, misleading on method. There is no official public
+   API; scrapers are rate-limited and automated access is against Google's terms. The methodological
+   problem is worse than the access one: the 0–100 index is rescaled per request, relative to the peak
+   inside the requested window and geo. A momentum figure is therefore a property of the window it was
+   measured in, and two keywords are only comparable if they were in the same request (max five terms).
+   Window and geo must be pinned per signal or the number is not reproducible.
+2. **"Keyword Planner is free with an active Ads account."** An unapproved developer token works only
+   against test accounts, which return fabricated numbers. Production data requires Basic access
+   approval. Volumes are also 12-month averages, bucketed into ranges below the reporting floor, and
+   they measure advertising intent.
+3. **"€5 buys 35,000 AI citation audits with `gpt-4o-mini`."** The token math is roughly right
+   (~$0.0002/prompt) but the model has no web access, so it reports memory, not citation. Grounded
+   checks cost about a cent each, so €5 buys **500–1,000 audits, not 35,000**.
+
+**Conclusion for v1.** Build on Keyword Planner + Trends via DataForSEO, and add grounded citation
+audits as the second axis. GitHub is the cheapest reliable third source and is genuinely free. Reddit
+stays a manual research input rather than a product dependency until a commercial agreement is in
+place. TikTok and Amazon are out on eligibility, not price.
+
+### 9.5 Market lens — `lib/markets.ts`, `lib/data/cities.ts`
+
+The user **types their city**. That city, the country around it and the world are the three widths the
+feed can be read at, resolved into one `MarketLens` object (`buildLens(city, scope)`) that every screen
+receives whole — so a momentum figure can never sit next to a comparison for a different market. City
+width is the default, because a city-sized market is the only one a solo builder can win inside one
+window, and the global column exists to answer the only question that changes what you should do: are
+you early or late?
+
+**Why a catalog and not free text alone.** Google Trends only reports the regions it reports. `CITIES`
+(~85 entries) stores the real geo code per city plus a `geoLevel` saying how precise it is: Berlin,
+Hamburg, Vienna, Oslo, Tokyo and Washington D.C. are city-states or districts Trends breaks out
+directly (`city`); Munich only exists there as Bavaria (`region`, `DE-BY`); Warsaw and Prague have no
+sub-region at all (`country`). `geoNote(market)` prints which case applies, so no "at source" link ever
+implies a precision Trends does not have. A name the catalog does not know is still accepted as a
+**custom market** — modelled curve, worldwide source links, both stated on screen — rather than being
+rejected or given a guessed geo code. Search folds diacritics by hand (`fold()`) instead of relying on
+`String.normalize`, which is not dependable across the engines this app runs on.
+
+- `relationTo(signal, market)` classifies every signal against the active market: `observed` (measured
+  here), `national` (the same observation one width up or down inside its own country), `follower` (a
+  worldwide signal arriving later), `template` (measured somewhere else — the demand pattern ports, the
+  wording does not) or `bound` (only exists where it was observed; `Signal.portable === false`, which in
+  the seeded set is Berghain door tips alone). `RELATION_WEIGHT` in `lib/feed.ts` scores those at
+  1.3 / 1 / 1 / 0.5 / 0.12: a measurement outranks a derivation, a template is real but needs rewriting,
+  and a bound keyword is pushed to the floor rather than hidden so the ranking stays inspectable.
+- `transferNote()` and `relationBadge()` say this on the card and on the signal screen. Switch to Lisbon
+  and the Berlin jurisdiction plays fall out of the top and are labelled _From Berlin_ — because the
+  seeded playbooks are written for the city they were observed in, down to the language of the first post.
+- `marketSeries(signal, market)` returns daily interest for one signal in one market. The market it was
+  observed in returns the measured curve. Others are derived as **followers** — the same shape, offset by
+  a deterministic lag, damped and lightly noised. Follower-only is deliberate: deriving a market that
+  _leads_ the observation would mean forecasting forward and drawing the forecast as if it were
+  measured. `lagFor()` is the single function the live pipeline replaces with one stored observation
+  series per geo.
+- `marketMomentum(signal, market)` returns the observed percentage for the market it was measured in, and
+  scales the others by the ratio of their trailing-14-day rises. A market that has not caught up reads
+  lower, which is why each lens naturally floats its own local signals to the top.
+- `leadDaysBetween(local, global)` slides the two curves against each other and keeps the
+  best-correlating offset. The day count shown in the UI is measured off the two lines the chart draws,
+  so the number and the picture cannot disagree.
+- `compareToGlobal()` turns that into one of three verdicts: **local-first** (the global curve is your
+  forecast — ship now and you are early everywhere), **global-first** (proven abroad, not landed here
+  — the import play), or **in-step** (no timing edge, win on execution).
+
+**Known limitation, stated rather than hidden.** All 23 seeded signals were gathered in Berlin, Germany
+or worldwide. Pick Amsterdam and `marketBlurb()` says so out loud: nothing was measured there yet, you
+are reading the global set through an Amsterdam lens. The lens is honest infrastructure for a per-geo
+pipeline, not a claim that per-city data already exists.
+
+`app/market.tsx` is the city search (modal): typed query → ranked catalog matches with the geo level and
+the measured-signal count per city, recents, common picks, and the custom-market escape hatch.
+`usePrefsStore` persists `city`, `marketScope` and `recentCities` at version 3, migrating the old
+three-way `market` id onto Berlin plus a width.
 
 ---
 
@@ -455,12 +534,15 @@ Expo Router app  (dark-locked, on-device state)
 ├── app/briefing        modal player
 ├── app/contribute      modal, amount ladder + share-of-outcome
 ├── app/agent           modal, x402 spec
+├── app/market          modal, city search (typed city → Trends geo code)
 └── app/onboarding
 lib/
-├── data/signals.ts     20 seeded signals (offline fallback)
+├── data/signals.ts     23 seeded signals (offline fallback)
+├── data/cities.ts      city catalog: geo code, geo level, aliases, custom-city helper
 ├── data/history.ts     FLAGGED_DAYS_AGO — the one seeded breakout date per signal
 ├── data/catalog.ts     niches, contribution ladder, monthly tiers, run costs, feed cost
-├── feed.ts             scopeSignals · rankByHeat · topSignals
+├── feed.ts             scopeSignals · rankForMarket · observedCount · topSignals
+├── markets.ts          buildLens · relationTo · marketSeries · compareToGlobal · geoNote
 ├── archive.ts          buildArchive · periodOf · flaggedLabel · stillClimbingCount
 ├── tags.ts             tagsFor · allTags · hasTag (derived theme tags)
 ├── explore.ts          trendsUrl · exploreLinks · sourceUrl · openExternal
@@ -472,11 +554,13 @@ lib/
 ├── palette.ts          hex mirrors of theme tokens for native colour props
 └── store/              usePrefsStore · useSignalStore · useSupportStore (zustand + AsyncStorage)
 hooks/useBriefingPlayer.tsx   expo-audio playback or synthetic timeline
+hooks/useMarketLens.ts        resolves stored city + width into the lens every screen reads
 ```
 
-**Persistence:** three zustand stores behind `AsyncStorage` (`trendspark-prefs`,
+**Persistence:** three zustand stores behind `AsyncStorage` (`trendspark-prefs` at version 3,
 `trendspark-signals` at version 3, `trendspark-support`). No server, no auth. The signal store migrates
-`unlockedIds` → `openedIds` for anyone who used the earlier credit build.
+`unlockedIds` → `openedIds` for anyone who used the earlier credit build; the prefs store migrates the
+old three-way `market` id onto a stored city plus a width.
 
 **External services**
 

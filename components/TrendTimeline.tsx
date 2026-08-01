@@ -16,19 +16,32 @@ interface TrendTimelineProps {
   height?: number;
   gradientId: string;
   color?: string;
+  /** A second series drawn on the same scale, for comparing two markets. */
+  compare?: number[];
+  compareColor?: string;
 }
 
-function buildGeometry(series: number[], width: number, height: number) {
-  const max = Math.max(...series);
-  const min = Math.min(...series);
-  const range = max - min || 1;
+interface Bounds {
+  min: number;
+  max: number;
+}
+
+function boundsOf(series: number[][]): Bounds {
+  const all = series.flat();
+  const min = Math.min(...all);
+  const max = Math.max(...all);
+  return { min, max: max === min ? min + 1 : max };
+}
+
+function buildGeometry(series: number[], width: number, height: number, bounds: Bounds) {
+  const span = bounds.max - bounds.min || 1;
   const step = series.length > 1 ? width / (series.length - 1) : width;
   const pad = 4;
   const usable = height - pad * 2;
 
   const coords = series.map((value, index) => ({
     x: index * step,
-    y: pad + usable - ((value - min) / range) * usable,
+    y: pad + usable - ((value - bounds.min) / span) * usable,
   }));
 
   const line = coords
@@ -47,6 +60,8 @@ export function TrendTimeline({
   height = 132,
   gradientId,
   color = palette.accent,
+  compare,
+  compareColor = palette.inkDim,
 }: TrendTimelineProps) {
   const [width, setWidth] = useState(0);
 
@@ -56,13 +71,24 @@ export function TrendTimeline({
   };
 
   const visible = history.slice(-range);
+  const compareVisible = compare ? compare.slice(-range) : null;
   const offset = history.length - visible.length;
   const marker =
     markerIndex === undefined || markerIndex - offset < 0 ? null : markerIndex - offset;
 
-  const geometry = width > 0 && visible.length > 1 ? buildGeometry(visible, width, height) : null;
+  const drawable = width > 0 && visible.length > 1;
+  const bounds = drawable ? boundsOf(compareVisible ? [visible, compareVisible] : [visible]) : null;
+  const geometry = bounds ? buildGeometry(visible, width, height, bounds) : null;
+  const compareGeometry =
+    bounds && compareVisible && compareVisible.length > 1
+      ? buildGeometry(compareVisible, width, height, bounds)
+      : null;
+
   const markerPoint = geometry && marker !== null ? geometry.coords[marker] : null;
   const nowPoint = geometry ? geometry.coords[geometry.coords.length - 1] : null;
+  const comparePoint = compareGeometry
+    ? compareGeometry.coords[compareGeometry.coords.length - 1]
+    : null;
 
   return (
     <View className="gap-2">
@@ -96,6 +122,20 @@ export function TrendTimeline({
                   strokeWidth={1.5}
                 />
               </>
+            ) : null}
+            {compareGeometry ? (
+              <Path
+                d={compareGeometry.line}
+                stroke={compareColor}
+                strokeWidth={1.6}
+                strokeDasharray="5 4"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ) : null}
+            {comparePoint ? (
+              <Circle cx={comparePoint.x - 1} cy={comparePoint.y} r={2.6} fill={compareColor} />
             ) : null}
             <Path
               d={geometry.line}

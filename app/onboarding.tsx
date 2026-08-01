@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowRight, Check, Radar } from 'lucide-react-native';
+import { ArrowRight, Check, MapPin, Radar, Search } from 'lucide-react-native';
 
+import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
 import { NICHES } from '@/lib/data/catalog';
 import { tapFeedback } from '@/lib/haptics';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 export default function OnboardingScreen() {
   const completeOnboarding = usePrefsStore((state) => state.completeOnboarding);
+  const city = usePrefsStore((state) => state.city);
   const [selected, setSelected] = useState<NicheId[]>([]);
 
   const toggle = (id: NicheId) => {
@@ -44,6 +46,39 @@ export default function OnboardingScreen() {
           <AppText className="text-muted text-[15px] leading-6">
             Every morning you get a 60-second voice briefing on what is rising, and a playbook you
             can act on the same day. Pick the areas you actually care about.
+          </AppText>
+        </View>
+
+        <View className="gap-2.5">
+          <SectionLabel hint="Type any city">Where you are building</SectionLabel>
+          <Pressable
+            onPress={() => {
+              tapFeedback();
+              router.push('/market');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Change city. Currently ${city.name}`}
+            className="border-border bg-panel flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80"
+          >
+            <MapPin color={palette.accent} size={16} />
+            <View className="flex-1">
+              <AppText weight="semibold" className="text-foreground text-[15px]" numberOfLines={1}>
+                {city.name}
+              </AppText>
+              <AppText weight="medium" className="text-ink-dim text-[11px]" numberOfLines={1}>
+                {city.countryName || 'Custom market'}
+              </AppText>
+            </View>
+            <View className="border-border bg-panel-raised flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5">
+              <Search color={palette.muted} size={11} />
+              <AppText weight="semibold" className="text-muted text-[11px]">
+                Change
+              </AppText>
+            </View>
+          </Pressable>
+          <AppText className="text-ink-dim text-[11px] leading-4">
+            The feed, the ranking and the briefing are read through your city, with the worldwide
+            curve next to it so you can tell whether you are early or late.
           </AppText>
         </View>
 

@@ -10,6 +10,7 @@ import { SignalCard } from '@/components/SignalCard';
 import { SupportPill } from '@/components/SupportPill';
 import { AppText } from '@/components/ui/Text';
 import { WatchRow } from '@/components/WatchRow';
+import { useMarketLens } from '@/hooks/useMarketLens';
 import { SIGNALS } from '@/lib/data/signals';
 import { tapFeedback } from '@/lib/haptics';
 import { outcomeTotals, progressSteps, resolveOutcomes } from '@/lib/outcomes';
@@ -47,6 +48,7 @@ export default function PlaysScreen() {
   const watched = useSignalStore((state) => state.watched);
   const toggleWatch = useSignalStore((state) => state.toggleWatch);
   const outcomes = useOutcomeStore((state) => state.outcomes);
+  const lens = useMarketLens();
   const [mode, setMode] = useState<Mode>(isMode(modeParam) ? modeParam : 'read');
 
   const readItems = useMemo(
@@ -171,6 +173,7 @@ export default function PlaysScreen() {
               <SignalCard
                 key={signal.id}
                 signal={signal}
+                lens={lens}
                 opened
                 onPress={() => {
                   tapFeedback();

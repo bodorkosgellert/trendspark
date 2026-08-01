@@ -26,8 +26,19 @@ const THEME_RULES: { id: string; label: string; test: RegExp }[] = [
   {
     id: 'admin',
     label: 'Rules & admin',
-    test: /anmelden|visa|requirements|legal|safety|compliance|regulation|bundesnetzagentur|immigration/,
+    test: /anmeld|visa|requirements|legal|safety|compliance|regulation|bundesnetzagentur|immigration|bürgeramt|amt|antrag|elster|steuererkl/,
   },
+  {
+    id: 'housing',
+    label: 'Housing',
+    test: /wohnung|miete|mietspiegel|mieterh|vermieter|kita|apartment|balkon/,
+  },
+  {
+    id: 'booking',
+    label: 'Getting a slot',
+    test: /termin|buchen|slot|platz|appointment|booking|einlass/,
+  },
+  { id: 'community', label: 'Community', test: /meetup|community|event|club|newsletter/ },
   { id: 'diy', label: 'DIY', test: /diy|homemade|selber|starter kit|recipe|build your own/ },
   { id: 'money', label: 'Money', test: /micropayment|depot|gebühren|fees|invest|x402|payout/ },
   { id: 'compare', label: 'Comparison', test: /vergleich|comparison|accuracy|alternative|versus/ },
