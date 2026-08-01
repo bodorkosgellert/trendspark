@@ -11,11 +11,12 @@ import type { Signal } from '@/lib/types';
 interface BriefingHeroProps {
   script: BriefingScript;
   signals: Signal[];
-  playsLeft: number | null;
+  /** How many briefings this user has played, shown as a running total. */
+  playCount: number;
   onPress: () => void;
 }
 
-export function BriefingHero({ script, signals, playsLeft, onPress }: BriefingHeroProps) {
+export function BriefingHero({ script, signals, playCount, onPress }: BriefingHeroProps) {
   const closing = signals.filter((signal) => signal.peakInDays <= 7).length;
 
   const summary =
@@ -67,11 +68,15 @@ export function BriefingHero({ script, signals, playsLeft, onPress }: BriefingHe
               .map((signal) => signal.keyword)
               .join('  ·  ')}
           </AppText>
-          {playsLeft !== null ? (
-            <AppText weight="semibold" className="text-hot ml-3 text-[11px]">
-              {playsLeft > 0 ? `${playsLeft} free play left` : 'Daily play used'}
+          {playCount > 0 ? (
+            <AppText weight="semibold" className="text-up ml-3 text-[11px]">
+              {playCount === 1 ? '1 played' : `${playCount} played`}
             </AppText>
-          ) : null}
+          ) : (
+            <AppText weight="semibold" className="text-up ml-3 text-[11px]">
+              Free
+            </AppText>
+          )}
         </View>
       </LinearGradient>
     </Pressable>

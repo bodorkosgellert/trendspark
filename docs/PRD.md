@@ -1,7 +1,7 @@
 # TrendSpark — Product Requirements Document
 
-**Version:** 1.0 (hackathon build)
-**Status:** Implemented, front-end complete, data seeded, purchases simulated
+**Version:** 1.1 (hackathon build — open access, pay-after)
+**Status:** Implemented, front-end complete, data seeded, contributions simulated
 **Platform:** iOS / Android / Web (Expo, React Native, Expo Router)
 **Audience for this doc:** hackathon judges, reviewers of this repository, future contributors
 
@@ -12,14 +12,18 @@
 TrendSpark turns rising search demand into a same-day money play for one person working alone.
 
 Every morning the app delivers a 60-second spoken briefing over the three hottest signals in the
-niches the user tracks. Below the briefing sits a ranked radar feed of rising keywords. Signal data —
-momentum, volume, competition, decay window, why it is rising — is free. The **playbook** for each
-signal (concrete steps, angles, monetization path, ready-to-post copy) costs one credit.
+niches the user tracks. Below the briefing sits a ranked radar feed of rising keywords, a dated
+watchlist for keywords worth waiting on, and a history view of every signal the radar has flagged
+with the date it broke out.
 
-Two payment rails, deliberately separated:
+**Nothing in the app is locked.** Every signal, playbook, timeline and briefing is open on every
+account from first launch. Payment happens afterwards, at an amount the user chooses, including zero.
 
-- **Humans** buy consumable credit packs or a plan through the app store.
-- **Machines** hit an x402-priced HTTP API and pay per request in stablecoin.
+Two payment models, deliberately separated:
+
+- **People** decide what it was worth after the fact, on a fixed ladder of store price points.
+- **Machines** hit an x402-priced HTTP API and pay per request in stablecoin, because software cannot
+  make a fairness judgement and does not need the goodwill.
 
 ---
 
@@ -34,9 +38,11 @@ Trend data exists and is cheap. Acting on it is not.
 3. **Existing tooling is priced for agencies.** Exploding Topics API is an add-on to a $249/mo plan,
    with request packages from $1,000/mo, and it explicitly cannot serve geo/keyword lookups. Bombora
    is enterprise-contract priced. There is no consumer-priced product in this category.
-4. **The unit of value is small.** One actionable playbook is worth roughly €1 to an indie hacker.
-   Card networks make a €1 charge uneconomic, so nobody sells at that unit — they force a
-   subscription instead, and churn accordingly.
+4. **The unit of value is small and unpredictable.** One actionable playbook is worth roughly €1 to an
+   indie hacker — and sometimes nothing at all, because the signal did not convert. Card networks make
+   a €1 charge uneconomic, so nobody sells at that unit; they force a subscription and churn
+   accordingly. Charging in advance for something whose value is only knowable afterwards is the
+   mismatch this build attacks.
 
 ## 3. Target user
 
@@ -55,8 +61,10 @@ That was the earlier B2B framing and it was dropped; it changes the pricing rail
 
 - G1 — A user can hear what changed in their market in under 60 seconds, hands-free.
 - G2 — A user can go from "this is rising" to "here is my first post" in under two minutes.
-- G3 — Monetize per unit of value (one playbook), not per month, while remaining store-compliant.
+- G3 — Let the user set the price after they know what it was worth, while staying store-compliant.
 - G4 — Make the machine-readable lane a first-class product surface, not a footnote.
+- G5 — Let a user verify a signal in a primary source without leaving the flow, and browse what the
+  radar flagged weeks or months ago.
 
 **Non-goals (this version)**
 
@@ -68,22 +76,36 @@ That was the earlier B2B framing and it was dropped; it changes the pricing rail
 
 ## 5. Success metrics
 
-| Metric                            | Definition                                        | Target         |
-| --------------------------------- | ------------------------------------------------- | -------------- |
-| Briefing D1 retention             | Users who play a briefing on two consecutive days | > 35%          |
-| Unlock rate                       | Sessions containing ≥ 1 playbook unlock           | > 20%          |
-| Credits per paying user per month | Ledger `unlock` entries / paying users            | > 6            |
-| Free → paid conversion            | Users who buy any pack or plan within 7 days      | > 5%           |
-| Time to first unlock              | Onboarding complete → first `unlock` ledger entry | < 3 min median |
+| Metric                  | Definition                                                | Target         |
+| ----------------------- | --------------------------------------------------------- | -------------- |
+| Briefing D1 retention   | Users who play a briefing on two consecutive days         | > 35%          |
+| Playbook read rate      | Sessions containing ≥ 1 playbook read                     | > 45%          |
+| Helped rate             | Playbooks rated "It helped" / playbooks rated at all      | > 50%          |
+| Contribution rate       | Users who pay any non-zero amount within 14 days          | > 4%           |
+| Average contribution    | Total contributed / contributing users                    | > €4.00        |
+| Revenue per active user | Total contributed / monthly active users                  | > €0.20        |
+| Cost coverage           | Total contributed / (run cost + feed cost) for the period | > 1.0          |
+| Time to first playbook  | Onboarding complete → first playbook read                 | < 2 min median |
+
+Contribution rate and average contribution are the two numbers that decide whether this model works.
+The literature is not encouraging for anonymous digital pay-what-you-want — a controlled field study
+found the same product averaging **$0.92** under plain PWYW versus **$5.33** when half the payment went
+to charity — so the honest planning assumption is single-digit conversion, and cost coverage is the
+metric that actually matters at this scale.
 
 ## 6. Product principles
 
-1. **Signal free, execution paid.** Never paywall the number. Paywall the plan derived from it.
+1. **Nothing is locked.** Not the signal, not the playbook, not the briefing. The product has to be
+   fully useful before it can ask for anything, because the value is only knowable after use.
 2. **Urgency is a feature.** Every signal carries a decay window and a projected decay bar.
 3. **No hype.** Copy is flat and specific. The generation prompt bans emoji, exclamation marks and
    encouragement, and asks for honest limitations.
 4. **Never fail on stage.** Every network dependency has a working offline path.
-5. **The micropayment must be visible.** The credit pill decrements in the header when you spend.
+5. **The cost is visible.** The Support tab prints what the user's activity actually cost to serve and
+   what the shared feed costs per month. Asking for money without showing the bill is a worse ask.
+6. **Ask only after value, never before it.** The contribution prompt appears after a run of value
+   moments or straight after a user says a playbook helped — the one point where pay-what-you-want
+   performs — and at most once a day.
 
 ---
 
@@ -95,7 +117,7 @@ Single screen, fade transition. Ten niches (`AI & tools`, `Creator economy`, `Fi
 `Gaming`, `Home & energy`, `Pets`, `Food`, `Travel`, `Wellness`), multi-select, skippable.
 
 - CTA reads "Show me everything" with nothing selected, "Track N areas" otherwise.
-- Footer states the free allowance: two credits, no card.
+- Footer states the access model: everything open from first launch, no card, no trial, no locked tab.
 - On confirm: `usePrefsStore.completeOnboarding(niches)` → `/(tabs)`.
 
 **Acceptance:** selecting zero niches must not produce an empty feed — `scopeSignals` falls back to
@@ -103,11 +125,15 @@ the full set.
 
 ### 7.2 Radar (home) — `app/(tabs)/index.tsx`
 
-- Header: wordmark + `CreditPill` (tappable, routes to `/paywall`).
+- Header: wordmark + `SupportPill` — reads "Open access" until the user has given something, then the
+  running total. Tapping it routes to `/contribute`.
 - `BriefingHero`: today's top three signals, script preview, duration, play button → `/briefing`.
+- A contribution prompt appears inline under the hero when `shouldAsk()` is true (five value moments
+  since the last ask, and not asked in the last 24 hours). It is dismissible and never blocks content.
 - Filter tabs: **Hottest** (default, by `heatScore`), **Low competition**, **Closing soon**.
 - Virtualized feed (`@shopify/flash-list`) of `SignalCard`: keyword, sparkline, momentum badge,
-  competition, region, window label, inline unlock affordance.
+  competition, region, window label, derived theme tags, a free **Track** toggle, and a **Playbook**
+  button that opens straight onto the playbook tab.
 - Empty state when a filter yields nothing.
 
 **Ranking:** `heatScore(momentum, competition) = momentum × penalty`, penalty `low = 1`,
@@ -124,64 +150,122 @@ Duration is estimated at 355 ms/word plus 260 ms per pause.
 - Transcript lines are tappable and seek; the active line is highlighted.
 - A jump button routes to the signal being read.
 - Voice is user-selectable: **Analyst**, **Anchor**, **Coach** (mapped to three ElevenLabs voice IDs).
-- Free plan: one full briefing per day (`FREE_BRIEFINGS_PER_DAY = 1`), then the paywall.
+- Unlimited replays, no daily cap. The footer prints the real per-play cost of speech synthesis
+  (`RUN_COST_CENTS.briefing`), and once a briefing finishes it offers — not requires — a contribution.
 
 **Degradation:** with no ElevenLabs key the player runs the same script on a synthetic timeline and
 the app labels itself "Transcript mode". Every control still works.
 
 ### 7.4 Signal detail — `app/signal/[id].tsx`
 
-Three tabs.
+Three tabs, none of them gated. Opening the screen records the first read via `useSignalStore.open()`,
+which is what the Support tab counts.
 
-- **Signal** (always free) — interest timeline with a 14 / 30 / 90-day range switch, searches/mo,
-  competition, window in days, "Why now" narrative, projected-decay progress bar, source tags. When the
-  keyword is tracked, a panel shows days tracked, change since tracking began, peak while watching,
-  window left, and a plain-language verdict.
-- **Playbook** (1 credit) — play kind badge (content / product / affiliate / local), headline, target
-  audience, four ordered steps with detail, three angles, monetization model + estimate + honest note.
-  A **Regenerate** button appears only when an OpenAI key is present.
-- **First move** (1 credit) — ready-to-post copy with a native share / copy action.
+- **Signal** — interest timeline with a 14 / 30 / 90-day range switch (defaulting to 90 when the
+  breakout is older than 24 days), a **First flagged** panel giving the breakout date, the interest
+  index then and now and the change since, searches/mo, competition, window in days, "Why now",
+  projected-decay bar, and a **Check it yourself** block. When the keyword is tracked, a panel shows
+  days tracked, change since tracking began, peak while watching, window left, and a verdict.
+- **Playbook** — play kind badge (content / product / affiliate / local), headline, target audience,
+  four ordered steps with detail, three angles, monetization model + estimate + honest note. A
+  **Regenerate** button appears only when an OpenAI key is present.
+- **First move** — ready-to-post copy with a native share / copy action.
 
-Header carries a **Track** toggle (free, no credit). Locked state shows a blurred panel with
-"Unlock playbook · 1 credit" and the guarantee "One credit, yours forever. Signal data stays free."
+Derived theme tags sit under the title; tapping one opens the History tab filtered to that tag.
+
+The header carries a **Track** toggle. The bottom bar carries the only ask on the screen: _"Did this
+playbook actually help?"_ with **Not really** and **It helped**. "It helped" routes to `/contribute`;
+"Not really" is recorded so a signal people find useless can stop being pushed to the top of the radar.
+
+**Check it yourself — `components/SourceLinks.tsx`, `lib/explore.ts`.** Five deep links per signal
+(Google Trends for the region, Google results, Reddit newest-first, YouTube, App Store search) plus the
+cited sources themselves, mapped back to a live search where a URL can be constructed — subreddits,
+Trends, Hacker News, GitHub, Product Hunt, Pinterest, Amazon, Etsy, Steam, X, Upwork. Links open in the
+device browser via `Linking.openURL`; nothing is embedded in a web view. The block states plainly that
+interest indexes are rescaled per request, so the number the user sees will not match ours exactly.
 
 ### 7.5 My plays — `app/(tabs)/plays.tsx`
 
-Toggle between **Unlocked** (permanent, count) and **Watching** (tracked keywords, count), each with an
-empty state routing back to Radar.
+Toggle between **Read** (playbooks already opened, count) and **Watching** (tracked keywords, count),
+each with an empty state routing back to Radar.
 
-Watching is the observation loop: tracking is free and records the moment it started
-(`WatchEntry.startedAt`), so each row can answer "has this kept climbing since I first saw it?" A row
-shows change since tracking began, an `accelerating` / `holding` / `cooling` status, days left in the
-window, a 30-day timeline with a dashed marker at the point tracking started, and a verdict sentence.
-This exists so a user can wait out a spike instead of spending a credit on the first thing that moves —
-which is the honest answer to "expressed interest is not willingness to pay".
+Watching is the observation loop: tracking records the moment it started (`WatchEntry.startedAt`), so
+each row can answer "has this kept climbing since I first saw it?" A row shows change since tracking
+began, an `accelerating` / `holding` / `cooling` status, days left in the window, a 30-day timeline
+with a dashed marker at the point tracking started, and a verdict sentence. This exists so a user can
+wait out a spike instead of acting on the first thing that moves — which is the honest answer to
+"expressed interest is not willingness to pay".
 
 Pre-rise history is generated deterministically from the signal id in `lib/watch.ts`
 (`buildHistory`), because the seeded feed only carries 14 points. When the live pipeline in §9.3 lands,
 `buildHistory` is the single function that gets replaced by stored daily observations.
 
-### 7.6 Credits — `app/(tabs)/wallet.tsx`
+### 7.6 History — `app/(tabs)/history.tsx`, `lib/archive.ts`, `lib/tags.ts`
 
-Balance, plan status, upgrade card for free users, three credit packs, a link to the machine-access
-lane, and the activity ledger (last 50 entries, signed and colour-coded). Copy states that unlocked
-playbooks never expire.
+Answers "what trended two weeks ago, or three months ago, and how did it age?"
 
-### 7.7 Paywall — `app/paywall.tsx`
+Every signal carries a breakout date. `lib/data/history.ts` seeds one number per signal —
+`FLAGGED_DAYS_AGO`, spread from 5 to 84 days — and everything else is computed from that signal's own
+curve: the index at breakout, the index now, the change since, and a stage of `Just broke out` /
+`Running a while` / `Long climb`. That one map is the whole migration surface for real observations.
 
-Mode toggle between **Plans** and **One-off credits**, radio selection, perk lists, active/most-picked
-badges, and a footer disclosing that billing is through the App Store or Play Store and that
-purchases are simulated in this build.
+- **Period filters:** All time · This week · 1–3 weeks ago · 3–6 weeks ago · 2–3 months ago.
+- **Tag filters:** derived, multi-select, OR-combined. Tapping a tag on a card or on a signal detail
+  filters the list.
+- **Cards** show the breakout label, interest then → now, the change since flagged, a timeline with a
+  dashed marker at the breakout day, the tag row, and volume + window.
+- A headline states how many of the filtered signals are still well above where they were flagged.
 
-### 7.8 You — `app/(tabs)/you.tsx`
+**Stated limitation, in the UI.** The header notes that this view has survivorship bias by
+construction — decayed signals leave the live feed, so what remains looks better than the true hit
+rate — and that curves before the tracked window are reconstructed. Overclaiming a hit rate here is
+the fastest way to lose a technical reviewer.
 
-Owned-playbook count and plan, niche tracking editor, voice picker, briefing hour (6/7/8/9/12/18),
-breakout-alert switch, live status of the two external services (Connected vs Transcript mode /
-Written playbooks), and a demo reset that clears all three stores and returns to onboarding.
+**Tags — `lib/tags.ts`.** Tags are derived, not authored, so a new signal is taggable the moment it
+enters the feed. Twelve regex theme rules run over keyword + reason + headline + target keywords
+(`AI`, `Audio`, `Video`, `Gear`, `Supplements`, `Sleep`, `Rules & admin`, `DIY`, `Money`, `Comparison`,
+`Energy`, `Seasonal`), plus structural tags for non-global region, `Open field` (low competition),
+`Short window` (≤ 10 days) and the play kind. Capped at six per signal, cached by signal id.
 
-### 7.9 Machine access (x402 lane) — `app/agent.tsx`
+### 7.7 Support — `app/(tabs)/support.tsx`
 
-Read-only spec surface, reachable from Credits.
+The money screen, and it opens with what the user got rather than what they owe.
+
+- Total contributed, and what share of their own serving cost that covers. Zero is stated as a
+  legitimate answer, not a nag.
+- **What you have used:** playbooks read, briefings played, keywords tracked.
+- **What that cost:** their all-time run cost, and the shared feed cost per month, with the reason the
+  two are different — the feed costs the same whatever the user count, so a small number of people
+  paying covers everyone, and only speech synthesis has a real per-use cost.
+- **Keep it running:** three recurring amounts (€1.99 / €4.99 / €9.99) that unlock nothing at all. The
+  copy says so explicitly. Tapping an active tier stops it.
+- Link to the machine-access lane, and the contribution history.
+
+### 7.8 Contribute — `app/contribute.tsx`
+
+The amount picker, reached from the pill, the prompt, the Support tab, the end of a briefing, or "It
+helped" on a playbook.
+
+- A usage recap and the run cost, so the ask is anchored on something real.
+- **Pick an amount** — `AmountDial` steps along the ladder with −/+ controls, a fill bar and four
+  presets. The caption shows roughly what reaches the developer after store fees.
+- **Share of an outcome** — the user picks what the app made them (€0 to €5,000, self-reported) and
+  what fraction to pass back (1 / 2 / 3 / 5 / 10%). The product is snapped to the nearest available
+  price point. An info panel states that TrendSpark cannot see the user's revenue and never asks for
+  access to it, so this is a fairness dial and not a commission.
+- The zero rung is real: the primary button reads **Not this time** and simply closes.
+- A **Why the amounts are fixed** panel explains the store constraint rather than hiding it.
+
+### 7.9 You — `app/(tabs)/you.tsx`
+
+Playbooks read and total contributed, niche tracking editor, voice picker, briefing hour
+(6/7/8/9/12/18), breakout-alert switch, live status of the two external services (Connected vs
+Transcript mode / Written playbooks), and a demo reset that clears all three stores and returns to
+onboarding.
+
+### 7.10 Machine access (x402 lane) — `app/agent.tsx`
+
+Read-only spec surface, reachable from the Support tab.
 
 | Endpoint                         | Price  | Returns                             |
 | -------------------------------- | ------ | ----------------------------------- |
@@ -197,38 +281,87 @@ invoice. The screen also states why this is _not_ the consumer checkout (see §8
 
 ## 8. Monetization
 
-### 8.1 Consumer rail (implemented, simulated)
+### 8.1 The model
 
-| Item              | Price    | Contents                                                       |
-| ----------------- | -------- | -------------------------------------------------------------- |
-| Free              | €0       | 2 starting credits, 1 briefing/day                             |
-| Pack — 3 credits  | €2.99    | ~€1.00 per playbook                                            |
-| Pack — 10 credits | €7.99    | €0.80 per playbook                                             |
-| Pack — 30 credits | €17.99   | €0.60 per playbook, best value                                 |
-| Weekly plan       | €4.99/wk | Unlimited briefing replays, 10 credits/week, signals 12h early |
-| Annual plan       | €79/yr   | Weekly perks, 25 credits/month, early access to new niches     |
+Nothing is gated. Payment is a judgement the user makes after using the product, at an amount they
+choose from a fixed ladder, and zero is a supported answer.
 
-1 credit = 1 playbook unlock, permanent. Credits are consumable IAP; plans are auto-renewing IAP.
+| Item                  | Amounts                                                                   | What it changes |
+| --------------------- | ------------------------------------------------------------------------- | --------------- |
+| Everything in the app | €0                                                                        | —               |
+| One-off contribution  | €0.99 · €1.99 · €2.99 · €4.99 · €7.99 · €11.99 · €19.99 · €29.99 · €49.99 | Nothing         |
+| Share of an outcome   | 1–10% of a self-reported result, snapped to the nearest rung              | Nothing         |
+| Keep it running       | €1.99 · €4.99 · €9.99 per month                                           | Nothing         |
 
-### 8.2 Why this structure
+That last column is the point. No tier buys earlier signals, more playbooks, extra briefings or a
+bigger allowance, because the moment it does the app has a paywall again and the ask stops being a
+judgement.
 
-- **Credit packs are the micropayment, made viable.** A €1 card charge loses most of its value to the
-  fixed per-transaction fee. Batching into a €2.99–€17.99 pack clears the fee floor while keeping the
-  _perceived_ unit price under €1.
-- **The plan carries the habit.** The briefing is the recurring surface, so it takes the recurring
-  charge. Unlocks stay variable because usage is bursty.
-- **x402 is not the consumer checkout.** App Store Review Guideline 3.1.1 and Google Play billing
-  policy require IAP for in-app digital goods; a stablecoin checkout for unlocking content is a
-  rejection. Independently, consumers will not fund a wallet to read a trend playbook. Retaining x402
-  strictly as a machine lane keeps both rails correct for their buyer.
-- **Rejected: pay-after-conversion / revenue share.** Attribution is unprovable, the cash cycle runs
-  months, and it turns a product into an agency.
+### 8.2 Why pay-what-you-want is a ladder and not a text box
 
-### 8.3 Implementation note
+A free-text amount cannot exist inside an app.
 
-Bilt-managed payments are not enabled on this project, so `useWalletStore.buyPack()` and
-`subscribe()` mutate local persisted state and write a ledger entry. Swapping in real IAP touches only
-those two actions.
+- **Apple** sells from a fixed set of price points — 900 of them, $0.29 to $10,000, 800 available by
+  default — chosen per product in App Store Connect. There is no API for a user-entered amount, so
+  every rung above is a separate consumable product.
+- **Google Play** requires declared prices for digital goods. Its peer-to-peer tip carve-out does not
+  apply here: that exemption requires 100% of the payment to reach a creator and to unlock nothing, and
+  a developer contribution inside a commercial app is not that.
+- **Both** take 15–30% of anything paid in-app. The app shows the user roughly what actually arrives.
+
+A true amount field needs web checkout, and the routes are uneven: the US storefront has allowed
+external purchase links without an entitlement since May 2025 with the commission currently at zero but
+under appeal; the EU requires the External Purchase Link entitlement with Core Technology fees of
+roughly 12–20% plus mandatory reporting; other storefronts prohibit the link entirely. Not worth the
+friction at this stage, so the ladder stays in-app.
+
+### 8.3 Why not revenue share
+
+Rejected on measurement, not on principle.
+
+1. **Causation is unprovable.** Read-only revenue access exists (Stripe Connect, Gumroad OAuth), but
+   seeing €4,000 in a user's account does not show that a keyword card caused it. Someone who read six
+   playbooks and did the work themselves would be billed for correlation, and they can see that.
+2. **Self-reporting collapses when reporting costs money.** Ask "did this earn?" with an invoice
+   attached and the answer becomes no.
+3. **The cash cycle inverts.** The data bill is monthly and fixed; a share of outcomes arrives quarters
+   later, so the operator finances the entire feed. A percentage of a user's external business revenue
+   is also not an IAP product, so it would have to be invoiced outside the app.
+4. **It is a worse promise.** "You keep 100% — we charge for the signal, not your success" beats "we
+   take a cut of what you build" for an audience of one-person businesses.
+
+The share-of-outcome mode in `app/contribute.tsx` is the honest remainder of the idea: the fraction is
+an input the user controls, the outcome is whatever they say it is, and the app never claims to have
+witnessed it.
+
+### 8.4 Why the economics can survive this
+
+Feed cost is fixed and shared, not per-user. The nightly pass in §9.3 costs under $30/month for the
+whole keyword grid regardless of user count. The only real marginal cost is speech synthesis, billed per
+character — `RUN_COST_CENTS` puts a briefing at about €0.08 and a playbook at a tenth of a cent.
+
+So the break-even condition is not "most users pay", it is "a few users cover a fixed bill". The Support
+tab states both numbers to the user, which is also the strongest argument the app can make for paying.
+
+The honest counterweight: PWYW performs badly in exactly this setting. The field evidence is anonymous
+digital buyers averaging near zero without a social or fairness cue, and Panera's pay-what-you-want
+cafés closed. Plan for single-digit conversion. If it fails, the fallback is not a paywall on signals —
+it is metering the one thing with a real per-use cost (voice) and keeping text open.
+
+### 8.5 Why x402 stays on the machine side
+
+App Store Review Guideline 3.1.1 and Google Play billing policy require IAP for in-app digital goods,
+so a stablecoin checkout for unlocking content is a rejection — and with nothing locked there is no
+per-use charge to collect from a person anyway. Agents are the opposite case: no fairness judgement to
+make, no goodwill to earn, and no card-fee floor, so €0.002 per request is possible. Worth noting that
+x402 volume has moved _away_ from the consumer micropayment regime — sub-$1 transactions fell from 46%
+to 4% of volume — which reinforces keeping it as an API lane rather than a checkout.
+
+### 8.6 Implementation note
+
+Bilt-managed payments are not enabled on this project, so `useSupportStore.contribute()` and
+`setMonthly()` mutate local persisted state and append to the contribution list. Swapping in real IAP
+touches only those two actions, and each ladder rung maps to one consumable product id.
 
 ---
 
@@ -317,27 +450,33 @@ commercial agreement is in place. TikTok and Amazon are out on eligibility, not 
 
 ```
 Expo Router app  (dark-locked, on-device state)
-├── app/(tabs)          Radar · My plays · Credits · You
-├── app/signal/[id]     Signal / Playbook / First move
+├── app/(tabs)          Radar · My plays · History · Support · You
+├── app/signal/[id]     Signal / Playbook / First move (nothing gated)
 ├── app/briefing        modal player
-├── app/paywall         modal, plans + packs
+├── app/contribute      modal, amount ladder + share-of-outcome
 ├── app/agent           modal, x402 spec
 └── app/onboarding
 lib/
 ├── data/signals.ts     20 seeded signals (offline fallback)
-├── data/catalog.ts     niches, packs, plans, UNLOCK_COST, STARTING_CREDITS
+├── data/history.ts     FLAGGED_DAYS_AGO — the one seeded breakout date per signal
+├── data/catalog.ts     niches, contribution ladder, monthly tiers, run costs, feed cost
 ├── feed.ts             scopeSignals · rankByHeat · topSignals
-├── format.ts           heatScore · windowLabel/Tone · formatMomentum/Volume · detectedLabel
+├── archive.ts          buildArchive · periodOf · flaggedLabel · stillClimbingCount
+├── tags.ts             tagsFor · allTags · hasTag (derived theme tags)
+├── explore.ts          trendsUrl · exploreLinks · sourceUrl · openExternal
+├── format.ts           heatScore · windowLabel/Tone · formatMomentum/Volume · euro
 ├── briefing.ts         buildBriefing · formatClock
+├── watch.ts            buildHistory · watchStats — replace on live data
 ├── elevenlabs.ts       TTS, single call site
 ├── openai.ts           playbook regeneration, single call site
 ├── palette.ts          hex mirrors of theme tokens for native colour props
-└── store/              usePrefsStore · useSignalStore · useWalletStore (zustand + AsyncStorage)
+└── store/              usePrefsStore · useSignalStore · useSupportStore (zustand + AsyncStorage)
 hooks/useBriefingPlayer.tsx   expo-audio playback or synthetic timeline
 ```
 
 **Persistence:** three zustand stores behind `AsyncStorage` (`trendspark-prefs`,
-`trendspark-signals`, `trendspark-wallet`). No server, no auth.
+`trendspark-signals` at version 3, `trendspark-support`). No server, no auth. The signal store migrates
+`unlockedIds` → `openedIds` for anyone who used the earlier credit build.
 
 **External services**
 
@@ -354,8 +493,8 @@ move behind a server route before any public release.
 ## 11. Design
 
 Dark-locked "demand terminal". Near-black canvas and panels, a single acid-lime accent
-`oklch(0.86 0.19 122)` reserved for rising momentum, credits and primary actions; amber for closing
-windows; red for decay. Mono-feel digits on every momentum number. Inter 400/500/600/700.
+`oklch(0.86 0.19 122)` reserved for rising momentum, contributions and primary actions; amber for
+closing windows; red for decay. Mono-feel digits on every momentum number. Inter 400/500/600/700.
 
 `lib/palette.ts` mirrors the tokens as hex because native colour props (SVG paint, tab-bar tints,
 StatusBar, gradients) cannot parse `oklch`.
@@ -367,29 +506,37 @@ alone — the sign and value are always printed.
 
 ## 12. Risks
 
-| Risk                                                       | Severity | Mitigation                                                           |
-| ---------------------------------------------------------- | -------- | -------------------------------------------------------------------- |
-| Trends' per-request rescaling makes cross-geo claims wrong | High     | Pair with Keyword Planner absolute volume; never compare raw indices |
-| Google Ads developer token approval delay                  | Medium   | Ship on DataForSEO, migrate later at zero data cost                  |
-| Playbook quality varies by model output                    | Medium   | Seeded playbooks as the floor; regeneration is opt-in and additive   |
-| Store rejection of a crypto checkout                       | High     | x402 confined to the machine lane; consumer rail is IAP only         |
-| Local long-tail keywords below reporting floor             | Medium   | Metro/region granularity, volume gate on the feed                    |
-| Client-embedded API keys                                   | High     | Proxy both providers server-side before release                      |
+| Risk                                                       | Severity | Mitigation                                                                     |
+| ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------------ |
+| Pay-what-you-want converts near zero                       | High     | Fixed shared cost, not per-user; fallback is metering voice, never gating text |
+| Contribution prompt reads as begging                       | Medium   | Ask only after value, at most once a day, dismissible, zero always offered     |
+| History view implies a hit rate it cannot support          | Medium   | Survivorship bias and reconstructed curves stated in the UI, not just the docs |
+| Trends' per-request rescaling makes cross-geo claims wrong | High     | Pair with Keyword Planner absolute volume; never compare raw indices           |
+| Google Ads developer token approval delay                  | Medium   | Ship on DataForSEO, migrate later at zero data cost                            |
+| Playbook quality varies by model output                    | Medium   | Seeded playbooks as the floor; regeneration is opt-in and additive             |
+| Store rejection of a crypto checkout                       | High     | x402 confined to the machine lane; the consumer side has nothing to charge for |
+| Local long-tail keywords below reporting floor             | Medium   | Metro/region granularity, volume gate on the feed                              |
+| Client-embedded API keys                                   | High     | Proxy both providers server-side before release                                |
 
 ## 13. Roadmap after the hackathon
 
 1. **Live feed** — backend, nightly Trends + Keyword Planner job, cached signals, composite score.
-2. **Real purchases** — swap simulated wallet actions for consumable + subscription IAP.
+2. **Real purchases** — map each ladder rung to a consumable product id and each monthly tier to a
+   subscription, then swap the two simulated actions in `useSupportStore`.
 3. **Key proxying** — move ElevenLabs and OpenAI behind server routes.
 4. **Geo selector** — city/region scoping on Radar, once absolute volumes are anchored.
 5. **Breakout push notifications** — the `notifyOnBreakout` preference is stored but not yet wired.
 6. **Ship the x402 endpoints** — the agent lane is currently specified, not served.
+7. **Real breakout dates** — replace `FLAGGED_DAYS_AGO` and `buildHistory` with stored daily
+   observations, which also removes the survivorship caveat from the History tab.
 
 ## 14. Demo script (3 minutes)
 
-Radar → play the briefing, 15 seconds of voice → scroll to a signal with a closing window → unlock,
-credit pill ticks down → Playbook tab → First move, one-tap copy → Credits tab for packs and plan →
-close on the x402 machine lane.
+Radar → play the briefing, 15 seconds of voice → open a signal with a closing window, note that nothing
+asks for payment → **Check it yourself**, open Google Trends for the keyword → Playbook tab → First move,
+one-tap copy → **It helped** → the Contribute screen: usage recap, the run cost, the amount ladder, then
+switch to share-of-outcome → History tab, filter to "3–6 weeks ago" and a tag, and read the survivorship
+caveat out loud → close on the x402 machine lane.
 
 ## 15. Repository
 

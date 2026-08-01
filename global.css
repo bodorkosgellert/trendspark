@@ -9,7 +9,7 @@
  * TrendSpark theme — "demand terminal"
  *
  * Dark-locked, near-black neutral canvas with a single acid-lime accent that is
- * reserved for rising signals, credits and primary actions. Amber marks "hot /
+ * reserved for rising signals, contributions and primary actions. Amber marks "hot /
  * closing soon", red marks decay. Both light and dark variants are defined so
  * HeroUI resolves its semantic tables identically on web and native, while
  * app/_layout.tsx locks the runtime theme to dark.

@@ -93,7 +93,7 @@ export default function OnboardingScreen() {
           <ArrowRight color={palette.accentInk} size={17} />
         </Pressable>
         <AppText className="text-ink-dim text-center text-xs">
-          Two playbook credits included. No card needed.
+          Everything is open from the first launch. No card, no trial, no locked tab.
         </AppText>
       </View>
     </View>

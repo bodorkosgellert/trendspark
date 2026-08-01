@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import { ChevronRight, Check, Lock, X } from 'lucide-react-native';
+import { BookOpen, Check, ChevronRight, X } from 'lucide-react-native';
 
 import { TrendTimeline } from '@/components/TrendTimeline';
 import { AppText } from '@/components/ui/Text';
-import { NICHE_LABEL, UNLOCK_COST } from '@/lib/data/catalog';
+import { NICHE_LABEL } from '@/lib/data/catalog';
 import { formatVolume } from '@/lib/format';
 import { palette } from '@/lib/palette';
 import type { Signal, WatchEntry } from '@/lib/types';
@@ -21,13 +21,20 @@ import {
 interface WatchRowProps {
   signal: Signal;
   entry: WatchEntry;
-  unlocked: boolean;
+  opened: boolean;
   onPress: () => void;
-  onUnlock: () => void;
+  onOpenPlaybook: () => void;
   onStop: () => void;
 }
 
-export function WatchRow({ signal, entry, unlocked, onPress, onUnlock, onStop }: WatchRowProps) {
+export function WatchRow({
+  signal,
+  entry,
+  opened,
+  onPress,
+  onOpenPlaybook,
+  onStop,
+}: WatchRowProps) {
   const history = useMemo(() => buildHistory(signal), [signal]);
   const stats = useMemo(
     () => watchStats(signal, entry.startedAt, history),
@@ -110,24 +117,24 @@ export function WatchRow({ signal, entry, unlocked, onPress, onUnlock, onStop }:
           {formatVolume(signal.volume)}/mo
         </AppText>
 
-        {unlocked ? (
+        {opened ? (
           <View className="flex-row items-center gap-1">
             <Check color={palette.accent} size={14} />
             <AppText weight="semibold" className="text-up text-xs">
-              Playbook ready
+              Playbook read
             </AppText>
             <ChevronRight color={palette.accent} size={14} />
           </View>
         ) : (
           <Pressable
-            onPress={onUnlock}
+            onPress={onOpenPlaybook}
             accessibilityRole="button"
-            accessibilityLabel={`Unlock playbook for ${signal.keyword}`}
+            accessibilityLabel={`Open the playbook for ${signal.keyword}`}
             className="bg-accent flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-80"
           >
-            <Lock color={palette.accentInk} size={12} />
+            <BookOpen color={palette.accentInk} size={12} />
             <AppText weight="semibold" className="text-accent-foreground text-xs">
-              Unlock · {UNLOCK_COST} credit
+              Playbook
             </AppText>
           </Pressable>
         )}

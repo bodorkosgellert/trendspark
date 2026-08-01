@@ -46,12 +46,13 @@ export default function AgentScreen() {
             <Bot color={palette.accent} size={22} />
           </View>
           <AppText weight="bold" className="text-foreground text-[24px] leading-8">
-            Humans buy credits. Agents pay per request.
+            People choose. Agents get metered.
           </AppText>
           <AppText className="text-muted text-[14px] leading-6">
-            Card networks have a fixed fee per charge, so a €0.002 purchase cannot exist on them.
-            That is why people buy credit packs in the app. Software buyers have no such limit, so
-            the same signals are also sold per request over HTTP 402.
+            Nothing is locked for a person, so there is no per-use charge to collect — the amount is
+            a judgement they make afterwards. Software cannot make that judgement and does not need
+            the goodwill, so the same signals are sold per request over HTTP 402, where a €0.002
+            charge is possible because there is no card fee floor to clear.
           </AppText>
         </View>
 

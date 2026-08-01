@@ -48,6 +48,12 @@ export function detectedLabel(iso: string): string {
   return `${days}d ago`;
 }
 
+/** Euro cents to a display string. Sub-cent run costs round up to one cent. */
+export function euro(cents: number): string {
+  if (cents > 0 && cents < 1) return '€0.01';
+  return `€${(cents / 100).toFixed(2)}`;
+}
+
 export function playKindLabel(kind: string): string {
   switch (kind) {
     case 'content':

@@ -8,22 +8,22 @@ import { Waveform } from '@/components/Waveform';
 import { AppText } from '@/components/ui/Text';
 import { useBriefingPlayer } from '@/hooks/useBriefingPlayer';
 import { buildBriefing, formatClock } from '@/lib/briefing';
+import { RUN_COST_CENTS } from '@/lib/data/catalog';
 import { isVoiceConfigured } from '@/lib/elevenlabs';
 import { topSignals } from '@/lib/feed';
+import { euro } from '@/lib/format';
 import { tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
 import { usePrefsStore } from '@/lib/store/usePrefsStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
-import { useWalletStore } from '@/lib/store/useWalletStore';
+import { useSupportStore } from '@/lib/store/useSupportStore';
 import { cn } from '@/lib/utils';
 
 export default function BriefingScreen() {
   const niches = usePrefsStore((state) => state.niches);
   const voiceId = usePrefsStore((state) => state.voiceId);
   const dismissedIds = useSignalStore((state) => state.dismissedIds);
-  const plan = useWalletStore((state) => state.plan);
-  const canPlayBriefing = useWalletStore((state) => state.canPlayBriefing);
-  const registerBriefingPlay = useWalletStore((state) => state.registerBriefingPlay);
+  const record = useSupportStore((state) => state.record);
 
   const signals = useMemo(() => topSignals(niches, dismissedIds), [niches, dismissedIds]);
   const script = useMemo(() => buildBriefing(signals), [signals]);
@@ -35,11 +35,7 @@ export default function BriefingScreen() {
 
   const handleToggle = () => {
     if (player.state === 'idle' || player.state === 'done') {
-      if (!canPlayBriefing()) {
-        router.push('/paywall');
-        return;
-      }
-      registerBriefingPlay();
+      record('briefing');
     }
     tapFeedback();
     player.toggle();
@@ -141,11 +137,28 @@ export default function BriefingScreen() {
           </Pressable>
         </View>
 
-        {plan === 'free' ? (
+        {player.state === 'done' ? (
+          <Pressable
+            onPress={() => {
+              tapFeedback();
+              router.push('/contribute');
+            }}
+            accessibilityRole="button"
+            className="border-accent bg-accent-soft items-center gap-1 rounded-2xl border p-4 active:opacity-80"
+          >
+            <AppText weight="semibold" className="text-foreground text-[14px]">
+              Was that worth anything to you?
+            </AppText>
+            <AppText className="text-muted text-center text-[12px] leading-5">
+              Briefings stay free and unlimited. You decide the amount, and zero is fine.
+            </AppText>
+          </Pressable>
+        ) : (
           <AppText className="text-ink-dim text-center text-[11px]">
-            Free plan includes one full briefing a day.
+            Unlimited briefings, no daily cap. Each one costs about {euro(RUN_COST_CENTS.briefing)}{' '}
+            in speech synthesis.
           </AppText>
-        ) : null}
+        )}
       </View>
 
       <ScrollView

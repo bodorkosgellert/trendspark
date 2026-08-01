@@ -71,31 +71,35 @@ export interface WatchEntry {
   startMomentum: number;
 }
 
-export type PlanId = 'free' | 'weekly' | 'annual';
+/** Things a user does that cost something to serve. */
+export type UsageKind = 'briefing' | 'playbook' | 'regenerate' | 'copy';
 
-export interface Plan {
-  id: PlanId;
-  label: string;
+export type Usage = Record<UsageKind, number>;
+
+/**
+ * One rung on the contribution ladder. Stores only sell from a fixed set of
+ * price points, so "pay what you want" is a ladder rather than a text field.
+ */
+export interface ContributionTier {
+  id: string;
+  cents: number;
   price: string;
-  cadence: string;
-  perks: string[];
-  includedCredits: number;
 }
 
-export interface CreditPack {
+export interface MonthlyTier {
   id: string;
-  credits: number;
+  cents: number;
   price: string;
-  perUnlock: string;
-  bestValue?: boolean;
+  label: string;
+  blurb: string;
 }
 
-export type LedgerKind = 'unlock' | 'topup' | 'bonus' | 'plan';
+export type ContributionSource = 'flat' | 'share' | 'monthly';
 
-export interface LedgerEntry {
+export interface Contribution {
   id: string;
-  kind: LedgerKind;
+  cents: number;
   label: string;
-  delta: number;
+  source: ContributionSource;
   at: string;
 }

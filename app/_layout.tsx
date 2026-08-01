@@ -43,7 +43,7 @@ function RootNavigator() {
         options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
       />
       <Stack.Screen
-        name="paywall"
+        name="contribute"
         options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
       />
       <Stack.Screen

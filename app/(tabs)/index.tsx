@@ -2,20 +2,20 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Redirect, router } from 'expo-router';
-import { Radar } from 'lucide-react-native';
+import { Heart, Radar as RadarIcon, X } from 'lucide-react-native';
 
 import { BriefingHero } from '@/components/BriefingHero';
-import { CreditPill } from '@/components/CreditPill';
 import { SectionLabel } from '@/components/SectionLabel';
 import { SignalCard } from '@/components/SignalCard';
+import { SupportPill } from '@/components/SupportPill';
 import { AppText } from '@/components/ui/Text';
 import { buildBriefing } from '@/lib/briefing';
 import { rankByHeat, scopeSignals } from '@/lib/feed';
+import { tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
-import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { usePrefsStore } from '@/lib/store/usePrefsStore';
-import { useSignalStore, isWatched } from '@/lib/store/useSignalStore';
-import { FREE_BRIEFINGS_PER_DAY, useWalletStore } from '@/lib/store/useWalletStore';
+import { isWatched, useSignalStore } from '@/lib/store/useSignalStore';
+import { shouldAsk, useSupportStore } from '@/lib/store/useSupportStore';
 import type { Signal } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -32,17 +32,23 @@ function openSignal(signal: Signal) {
   router.push({ pathname: '/signal/[id]', params: { id: signal.id } });
 }
 
+function openPlaybook(signal: Signal) {
+  tapFeedback();
+  router.push({ pathname: '/signal/[id]', params: { id: signal.id, tab: 'playbook' } });
+}
+
 export default function RadarScreen() {
   const onboarded = usePrefsStore((state) => state.onboarded);
   const niches = usePrefsStore((state) => state.niches);
-  const unlockedIds = useSignalStore((state) => state.unlockedIds);
+  const openedIds = useSignalStore((state) => state.openedIds);
   const dismissedIds = useSignalStore((state) => state.dismissedIds);
   const watched = useSignalStore((state) => state.watched);
-  const unlock = useSignalStore((state) => state.unlock);
   const toggleWatch = useSignalStore((state) => state.toggleWatch);
-  const plan = useWalletStore((state) => state.plan);
-  const briefingPlays = useWalletStore((state) => state.briefingPlays);
-  const briefingDate = useWalletStore((state) => state.briefingDate);
+  const briefingPlays = useSupportStore((state) => state.usage.briefing);
+  const contributedCents = useSupportStore((state) => state.contributedCents);
+  const eventsSincePrompt = useSupportStore((state) => state.eventsSincePrompt);
+  const lastPromptAt = useSupportStore((state) => state.lastPromptAt);
+  const markPromptSeen = useSupportStore((state) => state.markPromptSeen);
 
   const [filter, setFilter] = useState<Filter>('hot');
 
@@ -68,30 +74,18 @@ export default function RadarScreen() {
     return <Redirect href="/onboarding" />;
   }
 
-  const isToday = briefingDate === new Date().toISOString().slice(0, 10);
-  const playsLeft =
-    plan === 'free' ? Math.max(0, FREE_BRIEFINGS_PER_DAY - (isToday ? briefingPlays : 0)) : null;
-
-  const handleUnlock = (signal: Signal) => {
-    const result = unlock(signal.id, signal.keyword);
-    if (result === 'insufficient') {
-      router.push('/paywall');
-      return;
-    }
-    successFeedback();
-    router.push({ pathname: '/signal/[id]', params: { id: signal.id } });
-  };
+  const asking = shouldAsk(eventsSincePrompt, lastPromptAt);
 
   return (
     <View className="bg-background flex-1">
       <View className="pt-safe-offset-3 border-border bg-canvas flex-row items-center justify-between border-b px-5 pb-3">
         <View className="flex-row items-center gap-2">
-          <Radar color={palette.accent} size={18} />
+          <RadarIcon color={palette.accent} size={18} />
           <AppText weight="bold" className="text-foreground text-[17px]">
             TrendSpark
           </AppText>
         </View>
-        <CreditPill onPress={() => router.push('/paywall')} />
+        <SupportPill onPress={() => router.push('/contribute')} />
       </View>
 
       <FlashList
@@ -105,12 +99,52 @@ export default function RadarScreen() {
             <BriefingHero
               script={script}
               signals={top}
-              playsLeft={playsLeft}
+              playCount={briefingPlays}
               onPress={() => {
                 tapFeedback();
                 router.push('/briefing');
               }}
             />
+
+            {asking ? (
+              <View className="border-accent bg-accent-soft flex-row items-start gap-3 rounded-2xl border p-4">
+                <Heart color={palette.accent} size={16} />
+                <View className="flex-1 gap-1">
+                  <AppText weight="semibold" className="text-foreground text-[14px]">
+                    {contributedCents > 0
+                      ? 'You have been using this a fair bit again.'
+                      : 'You have used a few playbooks now.'}
+                  </AppText>
+                  <AppText className="text-muted text-[12px] leading-5">
+                    Nothing is locked and nothing will be. If any of it was worth something, you
+                    decide how much.
+                  </AppText>
+                  <Pressable
+                    onPress={() => {
+                      tapFeedback();
+                      router.push('/contribute');
+                    }}
+                    accessibilityRole="button"
+                    className="bg-accent mt-2 self-start rounded-full px-3.5 py-2 active:opacity-80"
+                  >
+                    <AppText weight="semibold" className="text-accent-foreground text-xs">
+                      Decide what it was worth
+                    </AppText>
+                  </Pressable>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    tapFeedback();
+                    markPromptSeen();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Not now"
+                  className="h-7 w-7 items-center justify-center rounded-full active:opacity-70"
+                >
+                  <X color={palette.inkDim} size={14} />
+                </Pressable>
+              </View>
+            ) : null}
 
             <View className="flex-row gap-2">
               {FILTERS.map((item) => {
@@ -146,14 +180,14 @@ export default function RadarScreen() {
         renderItem={({ item }) => (
           <SignalCard
             signal={item}
-            unlocked={unlockedIds.includes(item.id)}
+            opened={openedIds.includes(item.id)}
             watching={isWatched(watched, item.id)}
             onToggleWatch={() => {
               tapFeedback();
               toggleWatch(item.id, item.momentum);
             }}
             onPress={() => openSignal(item)}
-            onUnlock={() => handleUnlock(item)}
+            onOpenPlaybook={() => openPlaybook(item)}
           />
         )}
         ListEmptyComponent={

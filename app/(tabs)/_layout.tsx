@@ -1,4 +1,4 @@
-import { Activity, Bookmark, Settings, Wallet } from 'lucide-react-native';
+import { Activity, Bookmark, Heart, History, Settings } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
@@ -44,10 +44,17 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="wallet"
+          name="history"
           options={{
-            title: 'Credits',
-            tabBarIcon: ({ color, size }) => <Wallet color={color} size={size ?? 22} />,
+            title: 'History',
+            tabBarIcon: ({ color, size }) => <History color={color} size={size ?? 22} />,
+          }}
+        />
+        <Tabs.Screen
+          name="support"
+          options={{
+            title: 'Support',
+            tabBarIcon: ({ color, size }) => <Heart color={color} size={size ?? 22} />,
           }}
         />
         <Tabs.Screen

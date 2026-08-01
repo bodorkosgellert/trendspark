@@ -11,7 +11,8 @@ import { isModelConfigured } from '@/lib/openai';
 import { palette } from '@/lib/palette';
 import { VOICES, usePrefsStore } from '@/lib/store/usePrefsStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
-import { useWalletStore } from '@/lib/store/useWalletStore';
+import { useSupportStore } from '@/lib/store/useSupportStore';
+import { euro } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const HOURS = [6, 7, 8, 9, 12, 18];
@@ -40,15 +41,15 @@ export default function YouScreen() {
   const setNotifyOnBreakout = usePrefsStore((state) => state.setNotifyOnBreakout);
   const resetPrefs = usePrefsStore((state) => state.reset);
 
-  const unlockedCount = useSignalStore((state) => state.unlockedIds.length);
+  const openedCount = useSignalStore((state) => state.openedIds.length);
   const resetSignals = useSignalStore((state) => state.reset);
-  const resetWallet = useWalletStore((state) => state.reset);
-  const plan = useWalletStore((state) => state.plan);
+  const resetSupport = useSupportStore((state) => state.reset);
+  const contributedCents = useSupportStore((state) => state.contributedCents);
 
   const startOver = () => {
     tapFeedback();
     resetSignals();
-    resetWallet();
+    resetSupport();
     resetPrefs();
     router.replace('/onboarding');
   };
@@ -73,10 +74,10 @@ export default function YouScreen() {
               className="text-ink-dim text-[10px] uppercase"
               style={{ letterSpacing: 1 }}
             >
-              Playbooks owned
+              Playbooks read
             </AppText>
             <AppText weight="bold" className="text-foreground text-[20px]">
-              {unlockedCount}
+              {openedCount}
             </AppText>
           </View>
           <View className="border-border bg-panel flex-1 gap-1 rounded-2xl border p-4">
@@ -85,10 +86,10 @@ export default function YouScreen() {
               className="text-ink-dim text-[10px] uppercase"
               style={{ letterSpacing: 1 }}
             >
-              Plan
+              Contributed
             </AppText>
-            <AppText weight="bold" className="text-foreground text-[20px] capitalize">
-              {plan}
+            <AppText weight="bold" className="text-foreground text-[20px]">
+              {euro(contributedCents)}
             </AppText>
           </View>
         </View>

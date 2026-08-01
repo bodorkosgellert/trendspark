@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -7,16 +7,21 @@ import {
   ChevronLeft,
   Copy,
   Eye,
-  Lock,
+  Flag,
+  Heart,
   Sparkles,
   Target,
+  ThumbsDown,
 } from 'lucide-react-native';
 
 import { MomentumBadge } from '@/components/MomentumBadge';
 import { SectionLabel } from '@/components/SectionLabel';
+import { SourceLinks } from '@/components/SourceLinks';
+import { TagRow } from '@/components/TagRow';
 import { TrendTimeline } from '@/components/TrendTimeline';
 import { AppText } from '@/components/ui/Text';
-import { NICHE_LABEL, UNLOCK_COST } from '@/lib/data/catalog';
+import { archiveFor, flaggedLabel, stageLabel } from '@/lib/archive';
+import { NICHE_LABEL } from '@/lib/data/catalog';
 import { getSignalById } from '@/lib/data/signals';
 import { competitionLabel, detectedLabel, formatVolume, playKindLabel } from '@/lib/format';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -24,6 +29,8 @@ import { isModelConfigured, regeneratePlaybook } from '@/lib/openai';
 import { palette } from '@/lib/palette';
 import { shareText } from '@/lib/share';
 import { useSignalStore, watchEntry } from '@/lib/store/useSignalStore';
+import { useSupportStore } from '@/lib/store/useSupportStore';
+import { tagsFor } from '@/lib/tags';
 import type { Playbook, Signal, WatchEntry } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -45,19 +52,30 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'pitch', label: 'First move' },
 ];
 
+function isTab(value: string | undefined): value is Tab {
+  return value === 'signal' || value === 'playbook' || value === 'pitch';
+}
+
 export default function SignalDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab: tabParam } = useLocalSearchParams<{ id: string; tab?: string }>();
   const signal = useMemo(() => getSignalById(id), [id]);
 
-  const unlockedIds = useSignalStore((state) => state.unlockedIds);
   const watched = useSignalStore((state) => state.watched);
-  const unlock = useSignalStore((state) => state.unlock);
+  const open = useSignalStore((state) => state.open);
   const toggleWatch = useSignalStore((state) => state.toggleWatch);
+  const worthIt = useSupportStore((state) => state.worthIt);
+  const notWorthIt = useSupportStore((state) => state.notWorthIt);
+  const rate = useSupportStore((state) => state.rate);
+  const record = useSupportStore((state) => state.record);
 
-  const [tab, setTab] = useState<Tab>('signal');
+  const [tab, setTab] = useState<Tab>(isTab(tabParam) ? tabParam : 'signal');
   const [override, setOverride] = useState<Playbook | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [shared, setShared] = useState(false);
+
+  useEffect(() => {
+    if (signal) open(signal.id);
+  }, [signal, open]);
 
   if (!signal) {
     return (
@@ -74,23 +92,15 @@ export default function SignalDetailScreen() {
     );
   }
 
-  const unlocked = unlockedIds.includes(signal.id);
   const entry = watchEntry(watched, signal.id);
   const play = override ?? signal.play;
-
-  const handleUnlock = () => {
-    const result = unlock(signal.id, signal.keyword);
-    if (result === 'insufficient') {
-      router.push('/paywall');
-      return;
-    }
-    successFeedback();
-    setTab('playbook');
-  };
+  const helped = worthIt.includes(signal.id);
+  const missed = notWorthIt.includes(signal.id);
 
   const handleRegenerate = async () => {
     if (!isModelConfigured()) return;
     setRegenerating(true);
+    record('regenerate');
     const next = await regeneratePlaybook(signal);
     if (next) setOverride(next);
     setRegenerating(false);
@@ -100,6 +110,7 @@ export default function SignalDetailScreen() {
     const result = await shareText(play.firstPost, signal.keyword);
     if (result !== 'failed') {
       successFeedback();
+      record('copy');
       setShared(true);
       setTimeout(() => setShared(false), 1600);
     }
@@ -143,7 +154,6 @@ export default function SignalDetailScreen() {
       <View className="border-border bg-canvas flex-row gap-2 border-b px-5 py-3">
         {TABS.map((item) => {
           const active = tab === item.id;
-          const gated = item.id !== 'signal' && !unlocked;
           return (
             <Pressable
               key={item.id}
@@ -154,11 +164,10 @@ export default function SignalDetailScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               className={cn(
-                'flex-row items-center gap-1.5 rounded-full border px-3 py-2 active:opacity-70',
+                'rounded-full border px-3 py-2 active:opacity-70',
                 active ? 'border-accent bg-accent-soft' : 'border-border bg-panel',
               )}
             >
-              {gated ? <Lock color={active ? palette.accent : palette.inkDim} size={11} /> : null}
               <AppText
                 weight="semibold"
                 className={cn('text-xs', active ? 'text-up' : 'text-muted')}
@@ -192,6 +201,13 @@ export default function SignalDetailScreen() {
               </AppText>
             </View>
           </View>
+          <TagRow
+            tags={tagsFor(signal)}
+            onPress={(item) => {
+              tapFeedback();
+              router.push({ pathname: '/history', params: { tag: item.id } });
+            }}
+          />
         </View>
 
         {tab === 'signal' ? (
@@ -203,39 +219,96 @@ export default function SignalDetailScreen() {
               toggleWatch(signal.id, signal.momentum);
             }}
           />
-        ) : unlocked ? (
-          tab === 'playbook' ? (
-            <PlaybookTab
-              play={play}
-              regenerating={regenerating}
-              onRegenerate={handleRegenerate}
-              regenerateAvailable={isModelConfigured()}
-            />
-          ) : (
-            <PitchTab play={play} shared={shared} onShare={handleShare} />
-          )
+        ) : tab === 'playbook' ? (
+          <PlaybookTab
+            play={play}
+            regenerating={regenerating}
+            onRegenerate={handleRegenerate}
+            regenerateAvailable={isModelConfigured()}
+          />
         ) : (
-          <LockedPanel keyword={signal.keyword} steps={signal.play.steps.length} />
+          <PitchTab play={play} shared={shared} onShare={handleShare} />
         )}
       </ScrollView>
 
-      {!unlocked ? (
-        <View className="pb-safe-offset-4 border-border bg-canvas gap-2 border-t px-5 pt-4">
-          <Pressable
-            onPress={handleUnlock}
-            accessibilityRole="button"
-            className="bg-accent flex-row items-center justify-center gap-2 rounded-2xl py-4 active:opacity-80"
-          >
-            <Lock color={palette.accentInk} size={16} />
-            <AppText weight="semibold" className="text-accent-foreground text-[15px]">
-              Unlock playbook · {UNLOCK_COST} credit
+      <View className="pb-safe-offset-4 border-border bg-canvas gap-2 border-t px-5 pt-4">
+        {helped ? (
+          <>
+            <Pressable
+              onPress={() => {
+                tapFeedback();
+                router.push('/contribute');
+              }}
+              accessibilityRole="button"
+              className="bg-accent flex-row items-center justify-center gap-2 rounded-2xl py-4 active:opacity-80"
+            >
+              <Heart color={palette.accentInk} size={16} />
+              <AppText weight="semibold" className="text-accent-foreground text-[15px]">
+                Decide what this was worth
+              </AppText>
+            </Pressable>
+            <AppText className="text-ink-dim text-center text-[11px]">
+              You set the amount, including nothing. Nothing gets taken away either way.
             </AppText>
-          </Pressable>
-          <AppText className="text-ink-dim text-center text-[11px]">
-            One credit, yours forever. Signal data stays free.
-          </AppText>
-        </View>
-      ) : null}
+          </>
+        ) : missed ? (
+          <>
+            <View className="border-border bg-panel flex-row items-start gap-2 rounded-2xl border p-4">
+              <ThumbsDown color={palette.down} size={15} />
+              <AppText className="text-muted flex-1 text-[12px] leading-5">
+                Noted. Signals people find useless should stop being pushed at the top of the radar,
+                and this is the only honest way to learn that.
+              </AppText>
+            </View>
+            <Pressable
+              onPress={() => {
+                tapFeedback();
+                rate(signal.id, true);
+              }}
+              accessibilityRole="button"
+              className="items-center py-1 active:opacity-70"
+            >
+              <AppText weight="medium" className="text-muted text-[12px]">
+                Actually, it did help
+              </AppText>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <AppText weight="semibold" className="text-foreground text-center text-[13px]">
+              Did this playbook actually help?
+            </AppText>
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => {
+                  tapFeedback();
+                  rate(signal.id, false);
+                }}
+                accessibilityRole="button"
+                className="border-border bg-panel flex-1 flex-row items-center justify-center gap-2 rounded-2xl border py-3.5 active:opacity-70"
+              >
+                <ThumbsDown color={palette.muted} size={15} />
+                <AppText weight="semibold" className="text-muted text-[14px]">
+                  Not really
+                </AppText>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  successFeedback();
+                  rate(signal.id, true);
+                }}
+                accessibilityRole="button"
+                className="bg-accent flex-1 flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-80"
+              >
+                <Heart color={palette.accentInk} size={15} />
+                <AppText weight="semibold" className="text-accent-foreground text-[14px]">
+                  It helped
+                </AppText>
+              </Pressable>
+            </View>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -273,12 +346,16 @@ function SignalTab({
   onToggleWatch: () => void;
 }) {
   const decay = Math.min(1, Math.max(0.08, 1 - signal.peakInDays / 30));
-  const [range, setRange] = useState<number>(30);
+  const archive = useMemo(() => archiveFor(signal.id), [signal.id]);
+  const [range, setRange] = useState<number>(archive && archive.flaggedDaysAgo > 24 ? 90 : 30);
   const history = useMemo(() => buildHistory(signal), [signal]);
   const stats = useMemo(
     () => (entry ? watchStats(signal, entry.startedAt, history) : null),
     [entry, signal, history],
   );
+
+  const markerIndex = stats?.startIndex ?? archive?.flaggedIndex;
+  const markerLabel = stats ? 'Tracking started' : 'Breakout';
 
   return (
     <View className="gap-5">
@@ -317,12 +394,43 @@ function SignalTab({
         <TrendTimeline
           history={history}
           range={range}
-          markerIndex={stats?.startIndex}
-          markerLabel="Tracking started"
+          markerIndex={markerIndex}
+          markerLabel={markerLabel}
           height={132}
           gradientId={`detail-${signal.id}`}
         />
       </View>
+
+      {archive ? (
+        <View className="border-border bg-panel gap-2 rounded-2xl border p-4">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Flag color={palette.hot} size={14} />
+              <SectionLabel>First flagged</SectionLabel>
+            </View>
+            <AppText weight="semibold" className="text-muted text-[11px]">
+              {stageLabel(archive.stage)}
+            </AppText>
+          </View>
+          <AppText className="text-muted text-[13px] leading-5">
+            {flaggedLabel(archive.flaggedDaysAgo)} at an interest index of{' '}
+            {Math.round(archive.valueThen)}. It now sits at {Math.round(archive.valueNow)} —{' '}
+            {signedPct(archive.changePct)} since the radar first called it.
+          </AppText>
+          <Pressable
+            onPress={() => {
+              tapFeedback();
+              router.push('/history');
+            }}
+            accessibilityRole="button"
+            className="self-start active:opacity-70"
+          >
+            <AppText weight="semibold" className="text-up text-[12px]">
+              See what else broke out around then
+            </AppText>
+          </Pressable>
+        </View>
+      ) : null}
 
       {stats ? (
         <View className="border-accent bg-accent-soft gap-3 rounded-2xl border p-4">
@@ -367,8 +475,8 @@ function SignalTab({
               Track this keyword
             </AppText>
             <AppText className="text-muted text-[13px] leading-5">
-              Free. Follow it day by day and see whether it keeps climbing before you spend a
-              credit.
+              Follow it day by day and see whether it keeps climbing before you spend a weekend on
+              it.
             </AppText>
           </View>
           <View className="border-accent bg-accent-soft h-10 w-10 items-center justify-center rounded-full border">
@@ -406,18 +514,7 @@ function SignalTab({
         </AppText>
       </View>
 
-      <View className="gap-3">
-        <SectionLabel>Sources</SectionLabel>
-        <View className="flex-row flex-wrap gap-2">
-          {signal.sources.map((source) => (
-            <View key={source} className="border-border bg-panel rounded-full border px-3 py-1.5">
-              <AppText weight="medium" className="text-muted text-xs">
-                {source}
-              </AppText>
-            </View>
-          ))}
-        </View>
-      </View>
+      <SourceLinks signal={signal} />
     </View>
   );
 }
@@ -564,38 +661,6 @@ function PitchTab({
             />
           </View>
         ))}
-      </View>
-    </View>
-  );
-}
-
-function LockedPanel({ keyword, steps }: { keyword: string; steps: number }) {
-  return (
-    <View className="border-border bg-panel gap-4 rounded-2xl border p-5">
-      <View className="bg-panel-raised h-10 w-10 items-center justify-center rounded-2xl">
-        <Lock color={palette.accent} size={18} />
-      </View>
-      <AppText weight="semibold" className="text-foreground text-[17px] leading-6">
-        The playbook for {keyword}
-      </AppText>
-      <View className="gap-2">
-        {[
-          `${steps} concrete steps, in order`,
-          'Three angles that already work in this niche',
-          'What to charge and a realistic first-month range',
-          'A first post written for you',
-        ].map((item) => (
-          <View key={item} className="flex-row items-center gap-2">
-            <Check color={palette.accent} size={14} />
-            <AppText className="text-muted flex-1 text-[13px]">{item}</AppText>
-          </View>
-        ))}
-      </View>
-      <View className="border-border bg-canvas gap-2 rounded-xl border p-3">
-        <AppText weight="medium" className="text-ink-dim text-[12px] leading-5">
-          Locked lines look like this: &quot;Do not lead with the affiliate link, place it after the
-          honest limitations section, because...&quot;
-        </AppText>
       </View>
     </View>
   );

@@ -5,15 +5,19 @@
 **Rising search demand, turned into a same-day money play for one person working alone.**
 
 A 60-second spoken briefing (ElevenLabs) over the three hottest signals in the niches you track, on
-top of a ranked radar feed. Signal data is free — momentum, volume, competition, decay window, why it
-is rising. The playbook for each signal (steps, angles, monetization, ready-to-post copy) costs one
-credit. Humans buy credit packs or a plan through the app store; agents pay per request over an
-x402-priced HTTP API.
+top of a ranked radar feed, a dated watchlist, and a history view of every signal the radar has flagged
+with the date it broke out.
 
-- Full product spec: **[docs/PRD.md](docs/PRD.md)**
+**Nothing is locked.** Every signal, playbook, timeline and briefing is open from first launch. You
+decide afterwards what it was worth — pick an amount, or pass back a share of a result you report
+yourself — and zero is a supported answer. Agents are the one metered lane: they pay per request over
+an x402-priced HTTP API.
+
+- Full product spec, including why revenue share was rejected and why a free-text amount is impossible
+  inside an app: **[docs/PRD.md](docs/PRD.md)**
 - Stack: Expo · React Native · Expo Router · TypeScript · zustand + AsyncStorage · HeroUI Native ·
   Uniwind · ElevenLabs TTS · OpenAI `gpt-4o-mini`
-- No backend, no accounts. All state is on-device; store purchases are simulated in this build.
+- No backend, no accounts. All state is on-device; contributions are simulated in this build.
 
 ### Run it
 
@@ -31,16 +35,19 @@ EXPO_PUBLIC_OPENAI_API_KEY=       # unset: seeded playbooks are used, Regenerate
 
 ### Where things live
 
-| Path                                 | Contents                                              |
-| ------------------------------------ | ----------------------------------------------------- |
-| `app/(tabs)`                         | Radar · My plays · Credits · You                      |
-| `app/signal/[id].tsx`                | Signal / Playbook / First move tabs                   |
-| `app/briefing.tsx`                   | Voice briefing player                                 |
-| `app/paywall.tsx`                    | Plans and credit packs                                |
-| `app/agent.tsx`                      | x402 machine-access lane                              |
-| `lib/data/signals.ts`                | 20 seeded signals, offline fallback and demo dataset  |
-| `lib/store/`                         | `usePrefsStore` · `useSignalStore` · `useWalletStore` |
-| `lib/elevenlabs.ts`, `lib/openai.ts` | The only two external call sites                      |
+| Path                                 | Contents                                                     |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `app/(tabs)`                         | Radar · My plays · History · Support · You                   |
+| `app/signal/[id].tsx`                | Signal / Playbook / First move, none of them gated           |
+| `app/briefing.tsx`                   | Voice briefing player                                        |
+| `app/contribute.tsx`                 | Amount ladder and share-of-outcome dial                      |
+| `app/agent.tsx`                      | x402 machine-access lane                                     |
+| `lib/data/signals.ts`                | 20 seeded signals, offline fallback and demo dataset         |
+| `lib/data/history.ts`                | Seeded breakout dates — the whole live-data seam             |
+| `lib/archive.ts`, `lib/tags.ts`      | Breakout maths and derived theme tags                        |
+| `lib/explore.ts`                     | Deep links to Trends, Google, Reddit, YouTube, the App Store |
+| `lib/store/`                         | `usePrefsStore` · `useSignalStore` · `useSupportStore`       |
+| `lib/elevenlabs.ts`, `lib/openai.ts` | The only two external call sites                             |
 
 ---
 
