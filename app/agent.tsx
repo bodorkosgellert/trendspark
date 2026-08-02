@@ -1,22 +1,50 @@
-import { Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Bot, Code2, X } from 'lucide-react-native';
+import { Bot, CircleDashed, Code2, X } from 'lucide-react-native';
 
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
 import { palette } from '@/lib/palette';
 
+const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+
 const ENDPOINTS = [
-  { path: 'GET /v1/signals?niche=ai-tools', price: '$0.002', note: 'Ranked list, metadata only' },
+  { path: 'GET /v1/signals?city=berlin', price: '$0.002', note: 'Ranked list, metadata only' },
   { path: 'GET /v1/signals/{id}', price: '$0.01', note: 'Full signal with series and sources' },
   { path: 'GET /v1/signals/{id}/playbook', price: '$0.05', note: 'Generated playbook' },
 ];
 
 const FLOW = [
   'Agent requests a signal without credentials.',
-  'API answers 402 Payment Required with the price and a payment address.',
-  'Agent pays in stablecoin and retries with the payment header.',
-  'API returns the data. No account, no card, no invoice.',
+  'API answers 402 Payment Required with the price, asset, network and receiving address.',
+  'Agent signs a stablecoin authorisation and retries with the X-PAYMENT header.',
+  'Facilitator verifies and settles, the API returns the data. No account, no card, no invoice.',
+];
+
+const EXCHANGE = `GET /v1/signals?city=berlin
+
+HTTP/1.1 402 Payment Required
+{
+  "x402Version": 2,
+  "accepts": [{
+    "scheme": "exact",
+    "network": "eip155:8453",
+    "asset": "USDC",
+    "maxAmountRequired": "2000",
+    "payTo": "0x…",
+    "resource": "/v1/signals"
+  }]
+}
+
+GET /v1/signals?city=berlin
+X-PAYMENT: <signed authorisation>
+→ 200 OK`;
+
+const TO_BUILD = [
+  'A resource server in front of the feed, pointed at an x402 facilitator so no chain code is needed.',
+  'A receiving address on Base, and USDC so a €0.002 charge does not move with the market.',
+  'A settlement scheme that survives the price: usage billed under an authorised ceiling, or batched, because one on-chain settlement per request costs more than the request.',
+  'A discovery listing, since an agent has to find the endpoint before it can pay for it.',
 ];
 
 export default function AgentScreen() {
@@ -42,29 +70,61 @@ export default function AgentScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-3">
-          <View className="bg-accent-soft h-11 w-11 items-center justify-center rounded-2xl">
-            <Bot color={palette.accent} size={22} />
+          <View className="flex-row items-center gap-2">
+            <View className="bg-accent-soft h-11 w-11 items-center justify-center rounded-2xl">
+              <Bot color={palette.accent} size={22} />
+            </View>
+            <View className="border-border bg-panel rounded-full border px-2.5 py-1">
+              <AppText weight="medium" className="text-muted text-[10.5px] tracking-wide">
+                x402 · machine lane
+              </AppText>
+            </View>
           </View>
           <AppText weight="bold" className="text-foreground text-[24px] leading-8">
             People choose. Agents get metered.
           </AppText>
           <AppText className="text-muted text-[14px] leading-6">
-            Nothing is locked for a person, so there is no per-use charge to collect — the amount is
-            a judgement they make afterwards. Software cannot make that judgement and does not need
-            the goodwill, so the same signals are sold per request over HTTP 402, where a €0.002
-            charge is possible because there is no card fee floor to clear.
+            People: the whole app is open, nothing is locked, support is optional and decided
+            afterwards. Agents: the same signals priced per request over HTTP 402. Software cannot
+            make a judgement call about what a report was worth and does not need the goodwill, and
+            at €0.002 there is no card fee floor to clear.
+          </AppText>
+        </View>
+
+        <View className="border-border bg-panel gap-2.5 rounded-2xl border p-4">
+          <View className="flex-row items-center gap-2">
+            <CircleDashed color={palette.hot} size={15} />
+            <AppText weight="semibold" className="text-foreground text-[13px]">
+              Status: specified, not served
+            </AppText>
+          </View>
+          <AppText className="text-muted text-[12px] leading-5">
+            What exists is this screen: the endpoint shapes, the prices and the exchange below.
+            There is no server, no facilitator and no receiving wallet, so nothing answers a real
+            402 yet.
+          </AppText>
+          <AppText className="text-ink-dim text-[11.5px] leading-5">
+            This lane will not be called live until{' '}
+            <AppText className="text-muted text-[11px]" style={{ fontFamily: MONO }}>
+              GET /v1/signals
+            </AppText>{' '}
+            returns a 402 to a request you did not make yourself.
           </AppText>
         </View>
 
         <View className="gap-3">
-          <SectionLabel hint="Per request">Pricing</SectionLabel>
+          <SectionLabel hint="Planned, per request">Pricing</SectionLabel>
           {ENDPOINTS.map((endpoint) => (
             <View
               key={endpoint.path}
               className="border-border bg-panel gap-2 rounded-2xl border p-4"
             >
               <View className="flex-row items-center justify-between gap-3">
-                <AppText weight="medium" className="text-foreground flex-1 text-[12px]">
+                <AppText
+                  weight="medium"
+                  className="text-foreground flex-1 text-[12px]"
+                  style={{ fontFamily: MONO }}
+                >
                   {endpoint.path}
                 </AppText>
                 <AppText weight="semibold" className="text-up text-sm">
@@ -91,6 +151,28 @@ export default function AgentScreen() {
               <AppText className="text-muted flex-1 text-[13px] leading-5">{step}</AppText>
             </View>
           ))}
+          <View className="border-border bg-canvas rounded-2xl border p-4">
+            <AppText className="text-muted text-[11px] leading-[18px]" style={{ fontFamily: MONO }}>
+              {EXCHANGE}
+            </AppText>
+            <AppText className="text-ink-dim mt-3 text-[11px] leading-4">
+              maxAmountRequired is in the asset&apos;s smallest unit — 2000 is 0.002 USDC at six
+              decimals. Shape of the intended response, not a captured one.
+            </AppText>
+          </View>
+        </View>
+
+        <View className="gap-3">
+          <SectionLabel hint="Roadmap">What a live lane needs</SectionLabel>
+          {TO_BUILD.map((item) => (
+            <View
+              key={item}
+              className="border-border bg-panel flex-row gap-3 rounded-2xl border p-4"
+            >
+              <View className="bg-grid mt-1.5 h-1.5 w-1.5 rounded-full" />
+              <AppText className="text-muted flex-1 text-[12.5px] leading-5">{item}</AppText>
+            </View>
+          ))}
         </View>
 
         <View className="border-border bg-panel gap-2 rounded-2xl border p-4">
@@ -102,8 +184,9 @@ export default function AgentScreen() {
           </View>
           <AppText className="text-muted text-[12px] leading-5">
             App store rules require in-app digital purchases to go through in-app purchase, and a
-            consumer will not fund a wallet to read one trend report. Per-request payment is the
-            right rail for software buyers, not for people.
+            consumer will not fund a crypto wallet to read one trend report. Per-request payment is
+            the right rail for software buyers, not for people — which is why the two lanes are
+            separate rather than one compromise.
           </AppText>
         </View>
       </ScrollView>

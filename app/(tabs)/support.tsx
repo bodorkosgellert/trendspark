@@ -218,7 +218,7 @@ export default function SupportScreen() {
                 Machine access
               </AppText>
               <AppText className="text-muted text-xs">
-                Per-request signal API for agents — the one lane that is metered
+                Per-request signal API for agents — the one metered lane, specified, not yet served
               </AppText>
             </View>
           </View>

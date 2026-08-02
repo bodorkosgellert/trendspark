@@ -10,8 +10,17 @@ with the date it broke out.
 
 **Nothing is locked.** Every signal, playbook, timeline and briefing is open from first launch. You
 decide afterwards what it was worth — pick an amount, or pass back a share of a result you report
-yourself — and zero is a supported answer. Agents are the one metered lane: they pay per request over
-an x402-priced HTTP API.
+yourself — and zero is a supported answer.
+
+**Two lanes, on purpose.**
+
+- **People** — open app, no lock, no account. Support is optional and decided after use.
+- **Agents** — the same signals priced per request over an x402 HTTP API. The endpoint shapes,
+  prices and the 402 exchange are specified in [`app/agent.tsx`](app/agent.tsx); **a live server is
+  roadmap, not shipped.** Nothing returns a real 402 yet, and the app says so on that screen.
+
+x402 is the machine checkout, not the consumer one: app store rules require in-app digital purchases
+to go through IAP, and no consumer funds a wallet to read one trend report.
 
 - Full product spec, including why revenue share was rejected and why a free-text amount is impossible
   inside an app: **[docs/PRD.md](docs/PRD.md)**
@@ -41,7 +50,7 @@ EXPO_PUBLIC_OPENAI_API_KEY=       # unset: seeded playbooks are used, Regenerate
 | `app/signal/[id].tsx`                | Signal / Playbook / First move, none of them gated           |
 | `app/briefing.tsx`                   | Voice briefing player                                        |
 | `app/contribute.tsx`                 | Amount ladder and share-of-outcome dial                      |
-| `app/agent.tsx`                      | x402 machine-access lane                                     |
+| `app/agent.tsx`                      | x402 machine-access lane (specification)                     |
 | `lib/data/signals.ts`                | 20 seeded signals, offline fallback and demo dataset         |
 | `lib/data/history.ts`                | Seeded breakout dates — the whole live-data seam             |
 | `lib/archive.ts`, `lib/tags.ts`      | Breakout maths and derived theme tags                        |

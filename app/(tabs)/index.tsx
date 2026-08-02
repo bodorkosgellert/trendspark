@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Redirect, router } from 'expo-router';
-import { Heart, LayoutGrid, List, Radar as RadarIcon, X } from 'lucide-react-native';
+import { Bot, Heart, LayoutGrid, List, Radar as RadarIcon, X } from 'lucide-react-native';
 
 import { BriefingHero } from '@/components/BriefingHero';
 import { MarketSwitcher } from '@/components/MarketSwitcher';
@@ -45,6 +45,35 @@ const DENSITIES: { id: FeedDensity; label: string }[] = [
   { id: 'compact', label: 'Rows' },
   { id: 'cards', label: 'Cards' },
 ];
+
+/**
+ * End of feed, not top of it. States the two lanes once — people read this for
+ * nothing, machines pay per request — without putting a developer affordance in
+ * the middle of a consumer feed.
+ */
+function LaneFooter() {
+  return (
+    <Pressable
+      onPress={() => {
+        tapFeedback();
+        router.push('/agent');
+      }}
+      accessibilityRole="button"
+      accessibilityLabel="Machine access for agents"
+      className="border-border mt-6 gap-1.5 rounded-2xl border border-dashed p-4 active:opacity-70"
+    >
+      <View className="flex-row items-center gap-2">
+        <Bot color={palette.inkDim} size={14} />
+        <AppText weight="medium" className="text-muted text-[12px]">
+          People read this free. Agents pay per request.
+        </AppText>
+      </View>
+      <AppText className="text-ink-dim text-[11px] leading-4">
+        x402-priced signal API for software buyers — specified, no live endpoint yet. For agents →
+      </AppText>
+    </Pressable>
+  );
+}
 
 /** Rows or cards for the feed. Same signals, different amount of screen each. */
 function DensityToggle({
@@ -302,6 +331,7 @@ export default function RadarScreen() {
             </AppText>
           </View>
         }
+        ListFooterComponent={<LaneFooter />}
       />
     </View>
   );
