@@ -22,8 +22,20 @@
 
     <!-- Web app manifest — the install contract for Android/Chrome -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b" />
+    <!-- The app is dark-locked (Uniwind.setTheme('dark')), so both schemes carry
+         the canvas colour from lib/palette.ts rather than a light fallback. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0E12" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0E12" />
+
+    <!-- Link previews (Slack, X, Discord, WhatsApp) — the first thing anyone sees. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="TrendSpark — demand radar" />
+    <meta
+      property="og:description"
+      content="A 60-second voice briefing on what is spiking in your city, each signal with a ready-to-ship playbook. Free to use — you decide afterwards what it was worth."
+    />
+    <meta property="og:image" content="/icons/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
 
     <!-- iOS home-screen support. No apple-mobile-web-app-title: iOS falls back to
          <title>, which is substituted from app.config.ts and stays in sync. -->
