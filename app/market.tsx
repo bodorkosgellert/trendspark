@@ -12,6 +12,7 @@ import { Check, Globe, Info, MapPin, Plus, Search, X } from 'lucide-react-native
 
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
+import { track } from '@/lib/analytics';
 import { customCity, fold, findCity, searchCities, SUGGESTED_CITY_IDS } from '@/lib/data/cities';
 import { SIGNALS } from '@/lib/data/signals';
 import { observedCount } from '@/lib/feed';
@@ -108,6 +109,14 @@ export default function MarketScreen() {
 
   const choose = (next: CityDef) => {
     successFeedback();
+    // Which cities people ask for — including the ones the catalog has no geo
+    // code for — is the only way to know where the grid should widen next.
+    track('city_changed', {
+      city: next.name,
+      country: next.countryCode,
+      geo_level: next.geoLevel,
+      custom: Boolean(next.custom),
+    });
     setCity(next);
     router.back();
   };

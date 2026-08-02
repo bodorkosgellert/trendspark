@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Info, Trophy, X } from 'lucide-react-native';
+import { CreditCard, Info, Trophy, X } from 'lucide-react-native';
 
 import { AmountDial } from '@/components/AmountDial';
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
+import { track } from '@/lib/analytics';
 import {
   CONTRIBUTION_TIERS,
   DEFAULT_TIER_INDEX,
@@ -19,7 +20,9 @@ import { getSignalById } from '@/lib/data/signals';
 import { euro } from '@/lib/format';
 import { stepFeedback, successFeedback, tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
+import { isCheckoutConfigured, netAfterCheckoutFees, openCheckout } from '@/lib/polar';
 import { useOutcomeStore } from '@/lib/store/useOutcomeStore';
+import { usePrefsStore } from '@/lib/store/usePrefsStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
 import { runCostCents, useSupportStore, valueMoments } from '@/lib/store/useSupportStore';
 import { cn } from '@/lib/utils';
@@ -32,13 +35,14 @@ const MODES: { id: Mode; label: string }[] = [
 ];
 
 export default function ContributeScreen() {
-  const { outcomeId } = useLocalSearchParams<{ outcomeId?: string }>();
+  const { outcomeId, paid } = useLocalSearchParams<{ outcomeId?: string; paid?: string }>();
   const usage = useSupportStore((state) => state.usage);
   const contribute = useSupportStore((state) => state.contribute);
   const markPromptSeen = useSupportStore((state) => state.markPromptSeen);
   const watchedCount = useSignalStore((state) => state.watched.length);
   const outcomes = useOutcomeStore((state) => state.outcomes);
   const passBack = useOutcomeStore((state) => state.passBack);
+  const email = usePrefsStore((state) => state.briefingEmail);
 
   // Arriving from a logged result anchors the share on a number the user already
   // stated, which is the whole reason the ledger exists.
@@ -49,6 +53,15 @@ export default function ContributeScreen() {
   const [index, setIndex] = useState(DEFAULT_TIER_INDEX);
   const [outcomeStep, setOutcomeStep] = useState(2);
   const [fraction, setFraction] = useState<number>(0.03);
+
+  const card = isCheckoutConfigured();
+  // Set once the hosted checkout has been opened, or when Polar's success URL
+  // brings the browser back to /contribute?paid=… Zero means "came back, amount
+  // unknown", which is why the confirm step falls back to the selected rung.
+  const returnedCents = Number(paid);
+  const [awaiting, setAwaiting] = useState<number | null>(
+    paid ? (Number.isFinite(returnedCents) && returnedCents > 0 ? returnedCents : 0) : null,
+  );
 
   const cost = runCostCents(usage);
   const moments = valueMoments(usage);
@@ -61,26 +74,51 @@ export default function ContributeScreen() {
   const tier = CONTRIBUTION_TIERS[activeIndex];
   const zero = tier.cents === 0;
 
+  const label =
+    mode === 'share'
+      ? outcomeSignal
+        ? `${Math.round(fraction * 100)}% of ${euro(outcomeCents)} · ${outcomeSignal.keyword}`
+        : `${Math.round(fraction * 100)}% of ${euro(outcomeCents)}`
+      : 'Pay what it was worth';
+
+  const commit = (cents: number, source: 'flat' | 'share' | 'card') => {
+    contribute(cents, label, source);
+    if (outcome) passBack(outcome.id, cents);
+    track('contribution_confirmed', {
+      cents,
+      mode,
+      rail: source === 'card' ? 'polar' : 'simulated',
+      from_outcome: Boolean(outcome),
+    });
+    router.back();
+  };
+
   const confirm = () => {
     if (zero) {
       tapFeedback();
+      track('contribution_skipped', { mode });
       markPromptSeen();
       router.back();
       return;
     }
+
+    if (card) {
+      // Real money leaves the app here, so nothing is recorded until the user
+      // comes back and says it went through.
+      successFeedback();
+      track('checkout_opened', { cents: tier.cents, mode });
+      setAwaiting(tier.cents);
+      void openCheckout(tier.cents, email);
+      return;
+    }
+
     successFeedback();
-    const pct = Math.round(fraction * 100);
-    contribute(
-      tier.cents,
-      mode === 'share'
-        ? outcomeSignal
-          ? `${pct}% of ${euro(outcomeCents)} · ${outcomeSignal.keyword}`
-          : `${pct}% of ${euro(outcomeCents)}`
-        : 'Pay what it was worth',
-      mode,
-    );
-    if (outcome) passBack(outcome.id, tier.cents);
-    router.back();
+    commit(tier.cents, mode);
+  };
+
+  const confirmPaid = () => {
+    successFeedback();
+    commit(awaiting && awaiting > 0 ? awaiting : tier.cents, 'card');
   };
 
   return (
@@ -168,7 +206,9 @@ export default function ContributeScreen() {
             caption={
               zero
                 ? 'Closes without paying. Nothing gets taken away.'
-                : `About ${euro(Math.round(tier.cents * STORE_NET_SHARE))} of this reaches the developer after store fees.`
+                : card
+                  ? `About ${euro(netAfterCheckoutFees(tier.cents))} of this reaches the developer after Polar's 4% + 40c.`
+                  : `About ${euro(Math.round(tier.cents * STORE_NET_SHARE))} of this reaches the developer after store fees.`
             }
           />
         ) : (
@@ -308,28 +348,74 @@ export default function ContributeScreen() {
             price points and Google Play requires declared prices, so every rung above is a separate
             one-off product. Both stores also take 15 to 30% of anything paid in-app.
           </AppText>
+          {card ? (
+            <AppText className="text-ink-dim text-[11.5px] leading-5">
+              On the web that restriction does not apply: the same ladder goes through a Polar
+              checkout where you can change the amount before paying, there is no store cut, and
+              Polar is the merchant of record so EU VAT and the invoice are handled there.
+            </AppText>
+          ) : null}
         </View>
       </ScrollView>
 
       <View className="pb-safe-offset-4 border-border bg-canvas gap-3 border-t px-5 pt-4">
-        <Pressable
-          onPress={confirm}
-          accessibilityRole="button"
-          className={cn(
-            'items-center rounded-2xl py-4 active:opacity-80',
-            zero ? 'border-border bg-panel border' : 'bg-accent',
-          )}
-        >
-          <AppText
-            weight="semibold"
-            className={cn('text-[15px]', zero ? 'text-muted' : 'text-accent-foreground')}
-          >
-            {zero ? 'Not this time' : `Pay ${tier.price}`}
-          </AppText>
-        </Pressable>
-        <AppText className="text-ink-dim text-center text-[11px] leading-4">
-          Nothing unlocks and nothing locks. Payments are simulated in this build.
-        </AppText>
+        {awaiting === null ? (
+          <>
+            <Pressable
+              onPress={confirm}
+              accessibilityRole="button"
+              className={cn(
+                'items-center rounded-2xl py-4 active:opacity-80',
+                zero ? 'border-border bg-panel border' : 'bg-accent',
+              )}
+            >
+              <AppText
+                weight="semibold"
+                className={cn('text-[15px]', zero ? 'text-muted' : 'text-accent-foreground')}
+              >
+                {zero ? 'Not this time' : card ? `Pay ${tier.price} by card` : `Pay ${tier.price}`}
+              </AppText>
+            </Pressable>
+            <AppText className="text-ink-dim text-center text-[11px] leading-4">
+              {card
+                ? 'Nothing unlocks and nothing locks. Card payment runs through Polar, outside the app.'
+                : 'Nothing unlocks and nothing locks. Payments are simulated in this build.'}
+            </AppText>
+          </>
+        ) : (
+          <>
+            <View className="border-border bg-panel flex-row items-start gap-2 rounded-2xl border p-4">
+              <CreditCard color={palette.hot} size={15} />
+              <AppText className="text-muted flex-1 text-[12px] leading-5">
+                The checkout opened in your browser
+                {awaiting > 0 ? ` for ${euro(awaiting)}` : ''}. Come back when it is done. This app
+                has no server, so it cannot ask Polar whether the payment cleared — what gets
+                recorded is your word, exactly like a reported outcome.
+              </AppText>
+            </View>
+            <Pressable
+              onPress={confirmPaid}
+              accessibilityRole="button"
+              className="bg-accent items-center rounded-2xl py-4 active:opacity-80"
+            >
+              <AppText weight="semibold" className="text-accent-foreground text-[15px]">
+                It went through
+              </AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                tapFeedback();
+                setAwaiting(null);
+              }}
+              accessibilityRole="button"
+              className="border-border bg-panel items-center rounded-2xl border py-3 active:opacity-70"
+            >
+              <AppText weight="medium" className="text-muted text-[13px]">
+                It did not — back to the amounts
+              </AppText>
+            </Pressable>
+          </>
+        )}
       </View>
     </View>
   );

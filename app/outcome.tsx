@@ -12,6 +12,7 @@ import { Info, Trash2, X } from 'lucide-react-native';
 
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
+import { track } from '@/lib/analytics';
 import { OUTCOME_STAGES, REVENUE_PRESETS_CENTS } from '@/lib/data/catalog';
 import { getSignalById } from '@/lib/data/signals';
 import { euro } from '@/lib/format';
@@ -64,6 +65,8 @@ export default function OutcomeScreen() {
   const save = (thenContribute: boolean) => {
     successFeedback();
     const id = log({ signalId: signal.id, stage, revenueCents, note: note.trim() });
+    // The only evidence a play ever earned anything. Self-reported, never verified.
+    track('outcome_saved', { signal_id: signal.id, stage, revenue_cents: revenueCents });
     if (thenContribute && revenueCents > 0) {
       router.replace({ pathname: '/contribute', params: { outcomeId: id } });
       return;

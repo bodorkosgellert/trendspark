@@ -22,7 +22,7 @@ import {
   Stack,
 } from 'expo-router';
 
-import { initPostHog } from '@/lib/posthog';
+import { beginAnalytics } from '@/lib/analytics';
 import { palette } from '@/lib/palette';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
@@ -155,11 +155,7 @@ export default function RootLayout() {
     return undefined;
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      initPostHog();
-    }
-  }, []);
+  useEffect(() => beginAnalytics(), []);
 
   useEffect(() => {
     registerServiceWorker();

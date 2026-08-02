@@ -185,7 +185,12 @@ export interface MonthlyTier {
   blurb: string;
 }
 
-export type ContributionSource = 'flat' | 'share' | 'monthly';
+/**
+ * How a contribution was made. 'card' is a hosted checkout (Polar) confirmed by
+ * the user on their own word — without a backend holding the webhook secret the
+ * app cannot verify it, and the UI says so.
+ */
+export type ContributionSource = 'flat' | 'share' | 'monthly' | 'card';
 
 export interface Contribution {
   id: string;

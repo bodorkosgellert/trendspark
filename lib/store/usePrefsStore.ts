@@ -13,12 +13,28 @@ interface LegacyPrefsState {
   notifyOnBreakout?: boolean;
   /** v2 stored one of 'berlin' | 'germany' | 'global'. */
   market?: string;
+  /** v3 onwards: the typed city lens. */
+  city?: CityDef;
+  marketScope?: MarketScope;
+  recentCities?: CityDef[];
+  /** v4 onwards. */
+  density?: 'compact' | 'cards';
 }
 
 /** How tightly the radar feed is packed. */
 export type FeedDensity = 'compact' | 'cards';
 
+/**
+ * Whether the user has allowed usage analytics. `null` means not asked yet, and
+ * nothing is sent in that state — counting second-day returns needs a persistent
+ * identifier, and storing one needs consent (§25 TDDDG).
+ */
+export type AnalyticsConsent = 'granted' | 'denied' | null;
+
 const RECENT_LIMIT = 6;
+
+/** Enough day stamps to see a habit form without keeping a year of history. */
+const ACTIVE_DAYS_LIMIT = 120;
 
 interface PrefsState {
   onboarded: boolean;
@@ -37,6 +53,14 @@ interface PrefsState {
   voiceId: string;
   briefingHour: number;
   notifyOnBreakout: boolean;
+  analyticsConsent: AnalyticsConsent;
+  setAnalyticsConsent: (consent: AnalyticsConsent) => void;
+  /** ISO dates (YYYY-MM-DD) the app was opened on, newest first. */
+  activeDays: string[];
+  noteActiveDay: (day: string) => void;
+  /** Address the user left for the briefing list, or null. */
+  briefingEmail: string | null;
+  setBriefingEmail: (email: string | null) => void;
   completeOnboarding: (niches: NicheId[]) => void;
   toggleNiche: (niche: NicheId) => void;
   setVoice: (voiceId: string) => void;
@@ -87,6 +111,17 @@ export const usePrefsStore = create<PrefsState>()(
       voiceId: 'analyst',
       briefingHour: 7,
       notifyOnBreakout: true,
+      analyticsConsent: null,
+      setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
+      activeDays: [],
+      noteActiveDay: (day) =>
+        set((state) =>
+          state.activeDays.includes(day)
+            ? state
+            : { activeDays: [day, ...state.activeDays].slice(0, ACTIVE_DAYS_LIMIT) },
+        ),
+      briefingEmail: null,
+      setBriefingEmail: (briefingEmail) => set({ briefingEmail }),
       completeOnboarding: (niches) => set({ niches, onboarded: true }),
       toggleNiche: (niche) =>
         set((state) => ({
@@ -109,21 +144,26 @@ export const usePrefsStore = create<PrefsState>()(
     {
       name: 'trendspark-prefs',
       storage: persistStorage,
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const legacy = (persisted ?? {}) as LegacyPrefsState;
-        if (version >= 4) return persisted;
-        if (version === 3) {
-          const partial = typeof persisted === 'object' && persisted !== null ? persisted : {};
-          return { ...partial, density: 'compact' };
-        }
-        return {
-          ...legacy,
-          city: DEFAULT_CITY,
-          marketScope: scopeFromLegacy(legacy.market),
-          recentCities: [],
-          density: 'compact',
-        };
+
+        const base: LegacyPrefsState =
+          version >= 4
+            ? legacy
+            : version === 3
+              ? { ...legacy, density: 'compact' }
+              : {
+                  ...legacy,
+                  city: DEFAULT_CITY,
+                  marketScope: scopeFromLegacy(legacy.market),
+                  recentCities: [],
+                  density: 'compact',
+                };
+
+        // v5 adds analytics consent, day stamps and the mailing-list address.
+        // Consent starts unset on purpose: an upgrade cannot imply permission.
+        return { ...base, analyticsConsent: null, activeDays: [], briefingEmail: null };
       },
       onRehydrateStorage: () => (state) => {
         // Catalog fixes (a corrected geo code, a new alias) should reach state

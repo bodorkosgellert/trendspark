@@ -27,15 +27,30 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0E12" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0E12" />
 
-    <!-- Link previews (Slack, X, Discord, WhatsApp) — the first thing anyone sees. -->
+    <!-- Link previews (Slack, X, Discord, WhatsApp) — the first thing anyone sees.
+         og:image is relative, which most crawlers resolve; X and a few others
+         want an absolute URL, so swap in https://your-domain/og.png once the
+         domain is fixed. 1536×1024 is inside every crawler's size limit. -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="TrendSpark — demand radar" />
     <meta
       property="og:description"
       content="A 60-second voice briefing on what is spiking in your city, each signal with a ready-to-ship playbook. Free to use — you decide afterwards what it was worth."
     />
-    <meta property="og:image" content="/icons/icon-512.png" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
+    <meta
+      property="og:image:alt"
+      content="TrendSpark — rising demand, turned into a same-day play"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TrendSpark — demand radar" />
+    <meta
+      name="twitter:description"
+      content="Rising search demand, turned into a same-day play. Free to use — you decide afterwards what it was worth."
+    />
+    <meta name="twitter:image" content="/og.png" />
 
     <!-- iOS home-screen support. No apple-mobile-web-app-title: iOS falls back to
          <title>, which is substituted from app.config.ts and stays in sync. -->

@@ -5,6 +5,7 @@ import { ArrowRight, Check, MapPin, Radar, Search } from 'lucide-react-native';
 
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
+import { track } from '@/lib/analytics';
 import { NICHES } from '@/lib/data/catalog';
 import { tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
@@ -25,6 +26,7 @@ export default function OnboardingScreen() {
   };
 
   const start = () => {
+    track('onboarding_completed', { niches: selected.length, city: city.name });
     completeOnboarding(selected);
     router.replace('/(tabs)');
   };

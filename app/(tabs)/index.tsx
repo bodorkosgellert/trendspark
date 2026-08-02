@@ -4,6 +4,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Redirect, router } from 'expo-router';
 import { Bot, Heart, LayoutGrid, List, Radar as RadarIcon, X } from 'lucide-react-native';
 
+import { AnalyticsConsent } from '@/components/AnalyticsConsent';
 import { BriefingHero } from '@/components/BriefingHero';
 import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { SectionLabel } from '@/components/SectionLabel';
@@ -69,7 +70,7 @@ function LaneFooter() {
         </AppText>
       </View>
       <AppText className="text-ink-dim text-[11px] leading-4">
-        x402-priced signal API for software buyers — specified, no live endpoint yet. For agents →
+        x402-priced signal API for software buyers — server written, not deployed yet. For agents →
       </AppText>
     </Pressable>
   );
@@ -333,6 +334,7 @@ export default function RadarScreen() {
         }
         ListFooterComponent={<LaneFooter />}
       />
+      <AnalyticsConsent />
     </View>
   );
 }

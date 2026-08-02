@@ -1,21 +1,25 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Bell, Check, Clock, Mic, RotateCcw } from 'lucide-react-native';
+import { Bell, BarChart3, Check, Clock, Mic, RotateCcw } from 'lucide-react-native';
 
+import { EmailCapture } from '@/components/EmailCapture';
 import { SectionLabel } from '@/components/SectionLabel';
 import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { AppText } from '@/components/ui/Text';
 import { useMarketLens } from '@/hooks/useMarketLens';
+import { analyticsAvailable, applyAnalyticsConsent } from '@/lib/analytics';
 import { NICHES } from '@/lib/data/catalog';
 import { isVoiceConfigured } from '@/lib/elevenlabs';
 import { tapFeedback } from '@/lib/haptics';
 import { geoNote } from '@/lib/markets';
 import { isModelConfigured } from '@/lib/openai';
 import { palette } from '@/lib/palette';
+import { isCheckoutConfigured } from '@/lib/polar';
 import { VOICES, usePrefsStore } from '@/lib/store/usePrefsStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
 import { useOutcomeStore } from '@/lib/store/useOutcomeStore';
 import { useSupportStore } from '@/lib/store/useSupportStore';
+import { isSubscribeConfigured } from '@/lib/subscribe';
 import { euro } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +49,9 @@ export default function YouScreen() {
   const setBriefingHour = usePrefsStore((state) => state.setBriefingHour);
   const notifyOnBreakout = usePrefsStore((state) => state.notifyOnBreakout);
   const setNotifyOnBreakout = usePrefsStore((state) => state.setNotifyOnBreakout);
+  const analyticsConsent = usePrefsStore((state) => state.analyticsConsent);
+  const setAnalyticsConsent = usePrefsStore((state) => state.setAnalyticsConsent);
+  const activeDays = usePrefsStore((state) => state.activeDays);
   const resetPrefs = usePrefsStore((state) => state.reset);
 
   const openedCount = useSignalStore((state) => state.openedIds.length);
@@ -60,6 +67,14 @@ export default function YouScreen() {
     resetOutcomes();
     resetPrefs();
     router.replace('/onboarding');
+  };
+
+  const measuring = analyticsConsent === 'granted';
+  const toggleMeasuring = () => {
+    tapFeedback();
+    const next = !measuring;
+    setAnalyticsConsent(next ? 'granted' : 'denied');
+    applyAnalyticsConsent(next);
   };
 
   return (
@@ -247,6 +262,39 @@ export default function YouScreen() {
           </Pressable>
         </View>
 
+        <EmailCapture />
+
+        <View className="gap-3">
+          <SectionLabel hint={activeDays.length === 1 ? 'Day 1' : `${activeDays.length} days`}>
+            Usage measurement
+          </SectionLabel>
+          <Pressable
+            onPress={toggleMeasuring}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: measuring }}
+            className="border-border bg-panel flex-row items-center justify-between rounded-2xl border p-4 active:opacity-80"
+          >
+            <View className="flex-1 flex-row items-center gap-3">
+              <BarChart3 color={measuring ? palette.accent : palette.inkDim} size={15} />
+              <View className="flex-1 gap-0.5">
+                <AppText weight="medium" className="text-foreground text-[14px]">
+                  Count what I use
+                </AppText>
+                <AppText className="text-muted text-xs">
+                  Briefings played, signals opened, days you come back. No ads, no session
+                  recording, nothing sold on.
+                </AppText>
+              </View>
+            </View>
+            <Toggle value={measuring} />
+          </Pressable>
+          <AppText className="text-ink-dim text-[11px] leading-4">
+            {analyticsAvailable()
+              ? 'Turning this off stops sending and clears the stored identifier. The day count above is kept on this device either way.'
+              : 'Nothing is measured in this build: no analytics key is set, so the switch changes only your stated preference.'}
+          </AppText>
+        </View>
+
         <View className="gap-3">
           <SectionLabel>Connected services</SectionLabel>
           <View className="border-border bg-panel gap-2 rounded-2xl border p-4">
@@ -271,6 +319,45 @@ export default function YouScreen() {
                 className={cn('text-xs', isModelConfigured() ? 'text-up' : 'text-ink-dim')}
               >
                 {isModelConfigured() ? 'Connected' : 'Written playbooks'}
+              </AppText>
+            </View>
+            <View className="bg-border h-px" />
+            <View className="flex-row items-center justify-between">
+              <AppText weight="medium" className="text-foreground text-[13px]">
+                Email list
+              </AppText>
+              <AppText
+                weight="semibold"
+                className={cn('text-xs', isSubscribeConfigured() ? 'text-up' : 'text-ink-dim')}
+              >
+                {isSubscribeConfigured() ? 'Connected' : 'Not connected'}
+              </AppText>
+            </View>
+            <View className="bg-border h-px" />
+            <View className="flex-row items-center justify-between">
+              <AppText weight="medium" className="text-foreground text-[13px]">
+                Card payments
+              </AppText>
+              <AppText
+                weight="semibold"
+                className={cn('text-xs', isCheckoutConfigured() ? 'text-up' : 'text-ink-dim')}
+              >
+                {isCheckoutConfigured() ? 'Polar checkout' : 'Simulated'}
+              </AppText>
+            </View>
+            <View className="bg-border h-px" />
+            <View className="flex-row items-center justify-between">
+              <AppText weight="medium" className="text-foreground text-[13px]">
+                Usage analytics
+              </AppText>
+              <AppText
+                weight="semibold"
+                className={cn(
+                  'text-xs',
+                  analyticsAvailable() && measuring ? 'text-up' : 'text-ink-dim',
+                )}
+              >
+                {!analyticsAvailable() ? 'No key set' : measuring ? 'On' : 'Off'}
               </AppText>
             </View>
           </View>

@@ -7,6 +7,8 @@
     "ios": "expo run:ios",
     "expo-check": "expo install --check --npm",
     "export:web": "expo export -p web",
+    "export:signals": "tsx scripts/export-signals.ts",
+    "x402": "node server/x402-signals.mjs",
     "build:pwa": "expo export -p web && workbox generateSW workbox-config.js",
     "lint": "oxlint --type-aware --type-check",
     "lint:css": "node scripts/lint-css.mjs",

@@ -25,6 +25,7 @@ import { TrendTimeline } from '@/components/TrendTimeline';
 import { AppText } from '@/components/ui/Text';
 import { useMarketLens } from '@/hooks/useMarketLens';
 import { archiveFor, flaggedLabel, stageLabel } from '@/lib/archive';
+import { track } from '@/lib/analytics';
 import { NICHE_LABEL } from '@/lib/data/catalog';
 import { getSignalById } from '@/lib/data/signals';
 import { competitionLabel, detectedLabel, formatVolume, playKindLabel } from '@/lib/format';
@@ -112,6 +113,7 @@ export default function SignalDetailScreen() {
     if (!isModelConfigured()) return;
     setRegenerating(true);
     record('regenerate');
+    track('playbook_regenerated', { signal_id: signal.id });
     const next = await regeneratePlaybook(signal);
     if (next) setOverride(next);
     setRegenerating(false);
@@ -122,6 +124,7 @@ export default function SignalDetailScreen() {
     if (result !== 'failed') {
       successFeedback();
       record('copy');
+      track('copy_used', { signal_id: signal.id, method: result });
       setShared(true);
       setTimeout(() => setShared(false), 1600);
     }

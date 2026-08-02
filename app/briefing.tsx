@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowUpRight, Pause, Play, RotateCcw, X } from 'lucide-react-native';
@@ -8,6 +8,7 @@ import { Waveform } from '@/components/Waveform';
 import { AppText } from '@/components/ui/Text';
 import { useBriefingPlayer } from '@/hooks/useBriefingPlayer';
 import { useMarketLens } from '@/hooks/useMarketLens';
+import { track } from '@/lib/analytics';
 import { buildBriefing, formatClock } from '@/lib/briefing';
 import { RUN_COST_CENTS } from '@/lib/data/catalog';
 import { isVoiceConfigured } from '@/lib/elevenlabs';
@@ -41,10 +42,33 @@ export default function BriefingScreen() {
   const handleToggle = () => {
     if (player.state === 'idle' || player.state === 'done') {
       record('briefing');
+      track('briefing_started', {
+        signals: signals.length,
+        market: lens.active.short,
+        voice: voiceId,
+        spoken: isVoiceConfigured(),
+      });
     }
     tapFeedback();
     player.toggle();
   };
+
+  // Started minus finished is the only honest read on whether the script holds
+  // for 60 seconds. Fires once per playthrough, not once per render.
+  const finishedRef = useRef(false);
+  useEffect(() => {
+    if (player.state === 'playing') {
+      finishedRef.current = false;
+      return;
+    }
+    if (player.state === 'done' && !finishedRef.current) {
+      finishedRef.current = true;
+      track('briefing_finished', {
+        seconds: Math.round(player.durationMs / 1000),
+        market: lens.active.short,
+      });
+    }
+  }, [player.state, player.durationMs, lens.active.short]);
 
   const dateLabel = new Date().toLocaleDateString(undefined, {
     weekday: 'long',

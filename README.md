@@ -15,9 +15,10 @@ yourself — and zero is a supported answer.
 **Two lanes, on purpose.**
 
 - **People** — open app, no lock, no account. Support is optional and decided after use.
-- **Agents** — the same signals priced per request over an x402 HTTP API. The endpoint shapes,
-  prices and the 402 exchange are specified in [`app/agent.tsx`](app/agent.tsx); **a live server is
-  roadmap, not shipped.** Nothing returns a real 402 yet, and the app says so on that screen.
+- **Agents** — the same signals priced per request over x402. The resource server is in
+  [`server/x402-signals.mjs`](server/x402-signals.mjs): one file, no dependencies, real 402
+  responses in the v2 wire format, facilitator verify + settle. **It is not deployed**, and the app
+  says so on the Machine access screen. Nothing public answers a 402 yet.
 
 x402 is the machine checkout, not the consumer one: app store rules require in-app digital purchases
 to go through IAP, and no consumer funds a wallet to read one trend report.
@@ -25,22 +26,46 @@ to go through IAP, and no consumer funds a wallet to read one trend report.
 - Full product spec, including why revenue share was rejected and why a free-text amount is impossible
   inside an app: **[docs/PRD.md](docs/PRD.md)**
 - Stack: Expo · React Native · Expo Router · TypeScript · zustand + AsyncStorage · HeroUI Native ·
-  Uniwind · ElevenLabs TTS · OpenAI `gpt-4o-mini`
-- No backend, no accounts. All state is on-device; contributions are simulated in this build.
+  Uniwind · ElevenLabs TTS · OpenAI `gpt-4o-mini` · PostHog · Polar
+- No backend, no accounts. All state is on-device. Card payments are self-confirmed, because without
+  a server there is no webhook to verify them with.
 
 ### Run it
 
 ```sh
 npm install
 npx expo start   # scan the QR code with Expo Go
+
+npm run build:pwa        # static web export + service worker → dist/
+npm run export:signals   # seeded signals → server/signals.json
+npm run x402             # x402 resource server on :4020 (see server/README.md)
 ```
 
-Optional `.env` — the app is fully navigable without either key:
+Everything in `.env` is optional — the app runs, and says what is missing, with none of it set. Copy
+[`.env.example`](.env.example):
 
 ```
-EXPO_PUBLIC_ELEVENLABS_API_KEY=   # unset: briefing runs on a synthetic timeline ("Transcript mode")
-EXPO_PUBLIC_OPENAI_API_KEY=       # unset: seeded playbooks are used, Regenerate is hidden
+EXPO_PUBLIC_ELEVENLABS_API_KEY=      # unset: briefing runs on a synthetic timeline ("Transcript mode")
+EXPO_PUBLIC_OPENAI_API_KEY=          # unset: seeded playbooks are used, Regenerate is hidden
+EXPO_PUBLIC_POSTHOG_KEY=             # unset: nothing is measured, the consent bar does not appear
+EXPO_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+EXPO_PUBLIC_FORM_ENDPOINT=           # unset: the email field says it is not connected
+EXPO_PUBLIC_POLAR_CHECKOUT_URL=      # unset: contributions are recorded locally, no card
 ```
+
+### Publishing the web build
+
+`web.output` is `'single'`, so a host needs exactly one rule: unknown paths serve `index.html`.
+Cloudflare Pages ("single page app" preset) is the best fit — unlimited bandwidth on the free tier.
+Netlify needs `/* /index.html 200`; Vercel's Hobby tier forbids commercial use, so not once money is
+involved. GitHub Pages project sites break `start_url: "/"` and the service worker scope.
+
+### What is measured, and why so little
+
+Analytics is opt-in (a consent bar on Radar, reversible on the You tab) because counting second-day
+returns needs a persistent identifier, and storing one requires consent under §25 TDDDG. The event
+list in [`lib/analytics.ts`](lib/analytics.ts) is short on purpose: `return_day` is the one that
+decides whether a daily briefing is a product, and everything else exists to explain it.
 
 ### Where things live
 
@@ -50,7 +75,10 @@ EXPO_PUBLIC_OPENAI_API_KEY=       # unset: seeded playbooks are used, Regenerate
 | `app/signal/[id].tsx`                | Signal / Playbook / First move, none of them gated           |
 | `app/briefing.tsx`                   | Voice briefing player                                        |
 | `app/contribute.tsx`                 | Amount ladder and share-of-outcome dial                      |
-| `app/agent.tsx`                      | x402 machine-access lane (specification)                     |
+| `app/agent.tsx`                      | x402 machine-access lane (status, prices, exchange)          |
+| `server/x402-signals.mjs`            | The x402 resource server — real 402s, not deployed           |
+| `lib/analytics.ts`, `lib/posthog.ts` | The whole event list, and the consent-gated transport        |
+| `lib/polar.ts`, `lib/subscribe.ts`   | Card checkout link and email capture, both optional          |
 | `lib/data/signals.ts`                | 20 seeded signals, offline fallback and demo dataset         |
 | `lib/data/history.ts`                | Seeded breakout dates — the whole live-data seam             |
 | `lib/archive.ts`, `lib/tags.ts`      | Breakout maths and derived theme tags                        |

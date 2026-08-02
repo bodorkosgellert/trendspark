@@ -16,34 +16,41 @@ const ENDPOINTS = [
 
 const FLOW = [
   'Agent requests a signal without credentials.',
-  'API answers 402 Payment Required with the price, asset, network and receiving address.',
-  'Agent signs a stablecoin authorisation and retries with the X-PAYMENT header.',
-  'Facilitator verifies and settles, the API returns the data. No account, no card, no invoice.',
+  'API answers 402 Payment Required with the price, asset, network and receiving address — in the body and in a PAYMENT-REQUIRED header.',
+  'Agent signs a stablecoin authorisation and retries with the PAYMENT-SIGNATURE header.',
+  'The server has a facilitator verify and settle it, then returns the data with a PAYMENT-RESPONSE header. No account, no card, no invoice.',
 ];
 
 const EXCHANGE = `GET /v1/signals?city=berlin
 
 HTTP/1.1 402 Payment Required
+PAYMENT-REQUIRED: <base64 of the body>
 {
   "x402Version": 2,
+  "error": "PAYMENT-SIGNATURE header is required",
   "accepts": [{
     "scheme": "exact",
     "network": "eip155:8453",
-    "asset": "USDC",
-    "maxAmountRequired": "2000",
+    "asset": "0x8335…2913",
+    "amount": "2000",
     "payTo": "0x…",
-    "resource": "/v1/signals"
+    "maxTimeoutSeconds": 60
   }]
 }
 
 GET /v1/signals?city=berlin
-X-PAYMENT: <signed authorisation>
-→ 200 OK`;
+PAYMENT-SIGNATURE: <base64 signed authorisation>
+→ 200 OK + PAYMENT-RESPONSE`;
+
+const RUN = `npm run export:signals
+npm run x402
+curl -i localhost:4020/v1/signals`;
 
 const TO_BUILD = [
-  'A resource server in front of the feed, pointed at an x402 facilitator so no chain code is needed.',
-  'A receiving address on Base, and USDC so a €0.002 charge does not move with the market.',
-  'A settlement scheme that survives the price: usage billed under an authorised ceiling, or batched, because one on-chain settlement per request costs more than the request.',
+  'Deploy it and point a public URL at it, with a receiving address on Base and USDC so a €0.002 charge does not move with the market.',
+  'A replay cache. A settled authorisation is not remembered yet, so the same payment could be retried against another route.',
+  'A settlement scheme that survives the price: usage billed under an authorised ceiling (upto), or batched, because one on-chain settlement per request costs more than the request.',
+  'A request log in EUR per call. Crypto received for a service is business revenue on the day it arrives, and it has to be reconstructable.',
   'A discovery listing, since an agent has to find the endpoint before it can pay for it.',
 ];
 
@@ -95,25 +102,37 @@ export default function AgentScreen() {
           <View className="flex-row items-center gap-2">
             <CircleDashed color={palette.hot} size={15} />
             <AppText weight="semibold" className="text-foreground text-[13px]">
-              Status: specified, not served
+              Status: written and runnable, not deployed
             </AppText>
           </View>
           <AppText className="text-muted text-[12px] leading-5">
-            What exists is this screen: the endpoint shapes, the prices and the exchange below.
-            There is no server, no facilitator and no receiving wallet, so nothing answers a real
-            402 yet.
+            The server exists in this repository:{' '}
+            <AppText className="text-foreground text-[11px]" style={{ fontFamily: MONO }}>
+              server/x402-signals.mjs
+            </AppText>
+            . One file, no dependencies. It answers real 402 responses in the v2 wire format below
+            and has a facilitator verify and settle a payment before it serves anything.
           </AppText>
+          <AppText className="text-muted text-[12px] leading-5">
+            What does not exist yet: a public deployment, a receiving wallet, and a discovery
+            listing. Run it locally and it refuses payment on purpose until a payTo address is set.
+          </AppText>
+          <View className="border-border bg-canvas rounded-xl border p-3">
+            <AppText className="text-up text-[11px] leading-[18px]" style={{ fontFamily: MONO }}>
+              {RUN}
+            </AppText>
+          </View>
           <AppText className="text-ink-dim text-[11.5px] leading-5">
-            This lane will not be called live until{' '}
+            This lane will not be described as live until{' '}
             <AppText className="text-muted text-[11px]" style={{ fontFamily: MONO }}>
               GET /v1/signals
             </AppText>{' '}
-            returns a 402 to a request you did not make yourself.
+            returns a 402 from a public URL to a request you did not make yourself.
           </AppText>
         </View>
 
         <View className="gap-3">
-          <SectionLabel hint="Planned, per request">Pricing</SectionLabel>
+          <SectionLabel hint="Per request, priced in the server">Pricing</SectionLabel>
           {ENDPOINTS.map((endpoint) => (
             <View
               key={endpoint.path}
@@ -156,8 +175,8 @@ export default function AgentScreen() {
               {EXCHANGE}
             </AppText>
             <AppText className="text-ink-dim mt-3 text-[11px] leading-4">
-              maxAmountRequired is in the asset&apos;s smallest unit — 2000 is 0.002 USDC at six
-              decimals. Shape of the intended response, not a captured one.
+              amount is in the asset&apos;s smallest unit — 2000 is 0.002 USDC at six decimals. This
+              is what the server in this repository returns; it is not a screenshot of a hosted API.
             </AppText>
           </View>
         </View>

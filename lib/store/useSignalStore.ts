@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { track } from '@/lib/analytics';
 import { persistStorage } from '@/lib/store/storage';
 import { useSupportStore } from '@/lib/store/useSupportStore';
 import type { WatchEntry } from '@/lib/types';
@@ -37,6 +38,9 @@ export const useSignalStore = create<SignalState>()(
         if (get().openedIds.includes(signalId)) return false;
         set((state) => ({ openedIds: [signalId, ...state.openedIds] }));
         useSupportStore.getState().record('playbook');
+        // The store is the one choke point every screen goes through, so the
+        // feed's own scoreboard is measured here rather than in six components.
+        track('signal_opened', { signal_id: signalId });
         return true;
       },
       toggleWatch: (signalId, momentum) => {
@@ -53,14 +57,17 @@ export const useSignalStore = create<SignalState>()(
             ...state.watched,
           ],
         }));
+        track('signal_tracked', { signal_id: signalId, momentum });
         return true;
       },
-      dismiss: (signalId) =>
+      dismiss: (signalId) => {
+        track('signal_dismissed', { signal_id: signalId });
         set((state) => ({
           dismissedIds: state.dismissedIds.includes(signalId)
             ? state.dismissedIds
             : [signalId, ...state.dismissedIds],
-        })),
+        }));
+      },
       restore: () => set({ dismissedIds: [] }),
       reset: () => set({ openedIds: [], watched: [], dismissedIds: [] }),
     }),
