@@ -163,9 +163,10 @@ which is what the Support tab counts.
 
 - **Signal** — interest timeline with a 14 / 30 / 90-day range switch (defaulting to 90 when the
   breakout is older than 24 days), a **First flagged** panel giving the breakout date, the interest
-  index then and now and the change since, searches/mo, competition, window in days, "Why now",
-  projected-decay bar, and a **Check it yourself** block. When the keyword is tracked, a panel shows
-  days tracked, change since tracking began, peak while watching, window left, and a verdict.
+  index then and now and the change since, a **How early is this** panel (§9.6), searches/mo,
+  competition, window in days, "Why now", projected-decay bar, and a **Check it yourself** block. When
+  the keyword is tracked, a panel shows days tracked, change since tracking began, peak while watching,
+  window left, and a verdict.
 - **Playbook** — play kind badge (content / product / affiliate / local), headline, target audience,
   four ordered steps with detail, three angles, monetization model + estimate + honest note. A
   **Regenerate** button appears only when an OpenAI key is present.
@@ -525,6 +526,86 @@ three-way `market` id onto Berlin plus a width.
 
 ---
 
+### 9.6 Emergence windows and the t₀ probe — `lib/emergence.ts`, `lib/hn.ts`
+
+Momentum answers "is this moving". It cannot answer the question that decides whether a weekend is
+worth spending: **how old is the idea, and how much of its window is already gone.** Two pieces solve
+that, and they are kept apart on purpose — one is editorial, one is measured.
+
+**Window classes — `lib/emergence.ts`.** One rule underneath all of them: _a window stays open as long
+as the thing is hard to build._
+
+| Class               | Typical run to peak | Entrants           | What holds it open                                            |
+| ------------------- | ------------------- | ------------------ | ------------------------------------------------------------- |
+| **Viral fad**       | 2–8 weeks           | hundreds           | nothing — being early is the whole advantage                  |
+| **Platform wave**   | 3–9 months          | dozens to hundreds | a new platform capability, until the platform ships it itself |
+| **Rule change**     | 6–24 months         | 5–30               | a regulation or deadline; the paperwork stays annoying        |
+| **Local operation** | 1–3 years           | under ten per city | work nobody enjoys, in one place only                         |
+| **Category shift**  | 1–3 years           | dozens, funded     | real but slow, and capital is already inside it               |
+
+Each class carries a closing test rather than a date: a fad is closed when the debunks outnumber the
+how-tos; a platform wave when people search a product name instead of the problem; a rule change when
+the authority publishes a decent guide itself; a local operation when the city finally does the boring
+part; a category shift, for one person, when the leader owns brand-name search.
+
+Classification is a **reviewed table keyed on signal id**, not a computation, because it is the same
+judgement a human vetter makes. `inferWindowClass()` exists only as a fallback for ids the table has
+never seen, and `windowClassReviewed()` says which of the two produced the answer. The two ranges that
+matter most for this product are the good ones: **rule change** and **local operation** — which is the
+structural reason the city lens exists at all, and why the Berlin set is not a gimmick.
+
+**t₀ from Hacker News — `lib/hn.ts`.** HN's Algolia index is free, needs no key, sends CORS headers and
+reaches back to 2006, which makes it the only first-mention source queryable straight from the client on
+web and native alike.
+
+- `hnQuery()` reduces a long-tail search phrase to at most three distinctive terms (stop-word list in
+  English and German, four-digit years dropped) and the query used is printed on screen, so the count
+  is checkable rather than asserted.
+- All-time and trailing-365-day match counts come from `hitsPerPage=0` requests.
+- The **oldest** match is the awkward one: Algolia cannot sort ascending. Under 1,000 matches a single
+  descending page holds everything and the last hit is the oldest — one request. Above that, the time
+  axis is bisected on `created_at_i` until the first match is pinned inside a band under a month wide
+  (about eight probes across twenty years), and the result is flagged as dated to the month.
+- Traces are cached per keyword for the session, requests are abortable with a 9s timeout, and a
+  transport failure is distinguished from an empty result in both the type and the UI.
+
+`readEmergence(class, ageDays)` places the age inside the class range and returns one of three stances —
+**ahead of the window** (the risk is that it never arrives, not that you missed it), **inside, x%
+through**, or **past the typical window** (what is left is distribution, not a head start).
+
+**Three limits, stated in the panel and not only here.** HN is English-speaking and developer-heavy, so
+`balkonkraftwerk anmelden` correctly has no trace — for a local or regulatory keyword the panel says
+that absence is expected and points at Trends and Reddit instead. A first mention is the first
+_indexed_ mention, not the invention. Matching is lexical, so a renamed idea reads younger than it is.
+The date is a floor on the idea's age, never a ceiling. Where HN has nothing, the panel shows the class
+window only — it never substitutes the radar's own flag date, which would be a fabricated t₀.
+
+### 9.7 Guarding against spurious breakouts
+
+The planned grid is ~2,000 keywords × 20 cities = 40,000 simultaneous tests per night. At a naive
+p<0.05 that is **2,000 false breakouts from noise alone**, every night, which would quietly destroy the
+product. Five defences, to be implemented in the pipeline before it is presented as live data:
+
+1. **Multiplicity control** — Benjamini–Hochberg FDR across the nightly batch, or an effect-size floor
+   set far above the significance threshold.
+2. **Deseasonalise** — compare year-over-year, not against a trailing 14 days. A 14-day baseline fires
+   on every weekly cycle, public holiday and news spike.
+3. **Mechanism before correlation** — the `why` field becomes a gate, not a caption. No plausible causal
+   story, no signal.
+4. **Persistence** — a real trend survives a 7-day re-check. The watchlist already does this for the
+   user; the pipeline must do it before publishing.
+5. **Pre-register** — publish the call before the outcome. History reconstructs pre-window curves and
+   says so; a dated public record built forward from today is the only thing that would make it a track
+   record.
+
+Entrant counts follow the same logic as the windows and are worth saying out loud in the product: first
+mover usually loses to best executor (Wordle was cloned within weeks; Hipstamatic preceded Instagram;
+dozens of avatar apps preceded Lensa's wave). A later app can absolutely be bigger — but only while the
+leader has not locked in retention and brand-name search. **Practical test: if more than roughly five
+apps already rank for the exact keyword, what is left is distribution and execution, not the idea.**
+
+---
+
 ## 10. Architecture
 
 ```
@@ -549,6 +630,8 @@ lib/
 ├── format.ts           heatScore · windowLabel/Tone · formatMomentum/Volume · euro
 ├── briefing.ts         buildBriefing · formatClock
 ├── watch.ts            buildHistory · watchStats — replace on live data
+├── emergence.ts        window classes · windowClassFor · readEmergence (how late am I)
+├── hn.ts               Hacker News Algolia t₀ probe — free, keyless, cached per session
 ├── elevenlabs.ts       TTS, single call site
 ├── openai.ts           playbook regeneration, single call site
 ├── palette.ts          hex mirrors of theme tokens for native colour props
@@ -568,6 +651,7 @@ old three-way `market` id onto a stored city plus a width.
 | ---------- | -------------------------------- | --------------------------------------------------- | ------------------------------------------- |
 | ElevenLabs | `EXPO_PUBLIC_ELEVENLABS_API_KEY` | `/v1/text-to-speech/{voiceId}`, `eleven_turbo_v2_5` | Synthetic timeline, "Transcript mode" label |
 | OpenAI     | `EXPO_PUBLIC_OPENAI_API_KEY`     | `/v1/chat/completions`, `gpt-4o-mini`, JSON mode    | Seeded playbook used, Regenerate hidden     |
+| HN Algolia | none — public, keyless           | `hn.algolia.com/api/v1/search{,_by_date}`           | Panel shows the window class only           |
 
 `EXPO_PUBLIC_*` values are embedded in the client bundle. Acceptable for a hackathon build; both must
 move behind a server route before any public release.

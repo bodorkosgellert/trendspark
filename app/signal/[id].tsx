@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 
 import { MomentumBadge } from '@/components/MomentumBadge';
+import { EmergencePanel, WindowChip } from '@/components/EmergencePanel';
 import { MarketCompare } from '@/components/MarketCompare';
 import { SectionLabel } from '@/components/SectionLabel';
 import { SourceLinks } from '@/components/SourceLinks';
@@ -202,13 +203,14 @@ export default function SignalDetailScreen() {
           <AppText weight="bold" className="text-foreground text-[26px] leading-8">
             {signal.keyword}
           </AppText>
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row flex-wrap items-center gap-2">
             <MomentumBadge momentum={marketMomentum(signal, lens.active)} size="lg" />
             <View className="border-border bg-panel rounded-full border px-3 py-1.5">
               <AppText weight="medium" className="text-muted text-xs">
                 {signal.region}
               </AppText>
             </View>
+            <WindowChip signal={signal} />
             <View className="border-border bg-panel rounded-full border px-3 py-1.5">
               <AppText weight="medium" className="text-muted text-xs">
                 {detectedLabel(signal.detectedAt)}
@@ -483,6 +485,8 @@ function SignalTab({
       </View>
 
       <MarketCompare signal={signal} lens={lens} range={range} />
+
+      <EmergencePanel signal={signal} />
 
       {archive ? (
         <View className="border-border bg-panel gap-2 rounded-2xl border p-4">

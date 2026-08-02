@@ -26,6 +26,8 @@ import { usePrefsStore } from '@/lib/store/usePrefsStore';
  * - `contribution_confirmed` / `contribution_skipped` / `checkout_opened` — what
  *   pay-after actually converts at, which is the riskiest number in the model.
  * - `email_submitted` — the one way a user can be reached again.
+ * - `emergence_checked` — whether "how early am I" is a question people open, and
+ *   how often the Hacker News probe finds anything for a keyword at all.
  */
 export type AnalyticsEvent =
   | 'app_opened'
@@ -44,6 +46,7 @@ export type AnalyticsEvent =
   | 'contribution_confirmed'
   | 'contribution_skipped'
   | 'email_submitted'
+  | 'emergence_checked'
   | 'analytics_opted_in';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;

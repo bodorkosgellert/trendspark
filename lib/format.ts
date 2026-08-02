@@ -65,6 +65,15 @@ export function detectedLabel(iso: string): string {
   return `${days}d ago`;
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** `12 Mar 2023`. Written out rather than localised so it reads the same everywhere. */
+export function shortDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 /** Euro cents to a display string. Sub-cent run costs round up to one cent. */
 export function euro(cents: number): string {
   if (cents > 0 && cents < 1) return '€0.01';
