@@ -15,6 +15,9 @@ interface LegacyPrefsState {
   market?: string;
 }
 
+/** How tightly the radar feed is packed. */
+export type FeedDensity = 'compact' | 'cards';
+
 const RECENT_LIMIT = 6;
 
 interface PrefsState {
@@ -28,6 +31,9 @@ interface PrefsState {
   recentCities: CityDef[];
   setCity: (city: CityDef) => void;
   setMarketScope: (scope: MarketScope) => void;
+  /** Radar rows vs full cards. Rows first: more signals per screen. */
+  density: FeedDensity;
+  setDensity: (density: FeedDensity) => void;
   voiceId: string;
   briefingHour: number;
   notifyOnBreakout: boolean;
@@ -76,6 +82,8 @@ export const usePrefsStore = create<PrefsState>()(
             .slice(0, RECENT_LIMIT),
         })),
       setMarketScope: (marketScope) => set({ marketScope }),
+      density: 'compact',
+      setDensity: (density) => set({ density }),
       voiceId: 'analyst',
       briefingHour: 7,
       notifyOnBreakout: true,
@@ -101,15 +109,20 @@ export const usePrefsStore = create<PrefsState>()(
     {
       name: 'trendspark-prefs',
       storage: persistStorage,
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const legacy = (persisted ?? {}) as LegacyPrefsState;
-        if (version >= 3) return persisted;
+        if (version >= 4) return persisted;
+        if (version === 3) {
+          const partial = typeof persisted === 'object' && persisted !== null ? persisted : {};
+          return { ...partial, density: 'compact' };
+        }
         return {
           ...legacy,
           city: DEFAULT_CITY,
           marketScope: scopeFromLegacy(legacy.market),
           recentCities: [],
+          density: 'compact',
         };
       },
       onRehydrateStorage: () => (state) => {

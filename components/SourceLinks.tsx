@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { ExternalLink } from 'lucide-react-native';
 
+import { Favicon } from '@/components/Favicon';
 import { SectionLabel } from '@/components/SectionLabel';
 import { AppText } from '@/components/ui/Text';
 import { exploreLinks, openExternal, sourceUrl } from '@/lib/explore';
@@ -38,6 +39,7 @@ export function SourceLinks({ signal }: SourceLinksProps) {
             accessibilityLabel={`${link.label}: ${link.hint}`}
             className="border-border bg-panel flex-row items-center justify-between gap-3 rounded-2xl border p-4 active:opacity-70"
           >
+            <Favicon url={link.url} label={link.label} size={20} />
             <View className="flex-1 gap-0.5">
               <AppText weight="semibold" className="text-foreground text-[14px]">
                 {link.label}
@@ -79,6 +81,7 @@ export function SourceLinks({ signal }: SourceLinksProps) {
                 accessibilityLabel={`Open ${source}`}
                 className="border-accent bg-accent-soft flex-row items-center gap-1.5 rounded-full border px-3 py-1.5 active:opacity-70"
               >
+                <Favicon url={url} label={source} size={13} />
                 {label}
                 <ExternalLink color={palette.accent} size={11} />
               </Pressable>

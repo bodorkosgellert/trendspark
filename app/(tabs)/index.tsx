@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Redirect, router } from 'expo-router';
-import { Heart, Radar as RadarIcon, X } from 'lucide-react-native';
+import { Heart, LayoutGrid, List, Radar as RadarIcon, X } from 'lucide-react-native';
 
 import { BriefingHero } from '@/components/BriefingHero';
 import { MarketSwitcher } from '@/components/MarketSwitcher';
 import { SectionLabel } from '@/components/SectionLabel';
 import { SignalCard } from '@/components/SignalCard';
+import { SignalRow } from '@/components/SignalRow';
 import { SupportPill } from '@/components/SupportPill';
 import { AppText } from '@/components/ui/Text';
 import { useMarketLens } from '@/hooks/useMarketLens';
@@ -16,7 +17,7 @@ import { observedCount, rankForMarket, scopeSignals } from '@/lib/feed';
 import { tapFeedback } from '@/lib/haptics';
 import { marketBlurb } from '@/lib/markets';
 import { palette } from '@/lib/palette';
-import { usePrefsStore } from '@/lib/store/usePrefsStore';
+import { type FeedDensity, usePrefsStore } from '@/lib/store/usePrefsStore';
 import { isWatched, useSignalStore } from '@/lib/store/useSignalStore';
 import { shouldAsk, useSupportStore } from '@/lib/store/useSupportStore';
 import type { Signal } from '@/lib/types';
@@ -40,10 +41,53 @@ function openPlaybook(signal: Signal) {
   router.push({ pathname: '/signal/[id]', params: { id: signal.id, tab: 'playbook' } });
 }
 
+const DENSITIES: { id: FeedDensity; label: string }[] = [
+  { id: 'compact', label: 'Rows' },
+  { id: 'cards', label: 'Cards' },
+];
+
+/** Rows or cards for the feed. Same signals, different amount of screen each. */
+function DensityToggle({
+  density,
+  onChange,
+}: {
+  density: FeedDensity;
+  onChange: (value: FeedDensity) => void;
+}) {
+  return (
+    <View className="border-border bg-panel flex-row items-center gap-0.5 rounded-full border p-0.5">
+      {DENSITIES.map((item) => {
+        const active = density === item.id;
+        const Icon = item.id === 'compact' ? List : LayoutGrid;
+        return (
+          <Pressable
+            key={item.id}
+            onPress={() => {
+              tapFeedback();
+              onChange(item.id);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`${item.label} view`}
+            className={cn(
+              'h-7 w-8 items-center justify-center rounded-full active:opacity-70',
+              active && 'bg-accent-soft',
+            )}
+          >
+            <Icon color={active ? palette.accent : palette.inkDim} size={14} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function RadarScreen() {
   const onboarded = usePrefsStore((state) => state.onboarded);
   const niches = usePrefsStore((state) => state.niches);
   const setMarketScope = usePrefsStore((state) => state.setMarketScope);
+  const density = usePrefsStore((state) => state.density);
+  const setDensity = usePrefsStore((state) => state.setDensity);
   const lens = useMarketLens();
   const openedIds = useSignalStore((state) => state.openedIds);
   const dismissedIds = useSignalStore((state) => state.dismissedIds);
@@ -115,7 +159,9 @@ export default function RadarScreen() {
         data={feed}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 }}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        ItemSeparatorComponent={() =>
+          density === 'compact' ? <View className="bg-border h-px" /> : <View className="h-3" />
+        }
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View className="gap-5 pb-4">
@@ -210,25 +256,42 @@ export default function RadarScreen() {
               })}
             </View>
 
-            <SectionLabel hint={`${feed.length} live`}>
-              {`Signals in ${lens.active.label}`}
-            </SectionLabel>
+            <View className="flex-row items-end justify-between gap-3">
+              <SectionLabel className="flex-1" hint={`${feed.length} live`}>
+                {`Signals in ${lens.active.label}`}
+              </SectionLabel>
+              <DensityToggle density={density} onChange={setDensity} />
+            </View>
           </View>
         }
-        renderItem={({ item }) => (
-          <SignalCard
-            signal={item}
-            lens={lens}
-            opened={openedIds.includes(item.id)}
-            watching={isWatched(watched, item.id)}
-            onToggleWatch={() => {
-              tapFeedback();
-              toggleWatch(item.id, item.momentum);
-            }}
-            onPress={() => openSignal(item)}
-            onOpenPlaybook={() => openPlaybook(item)}
-          />
-        )}
+        renderItem={({ item }) =>
+          density === 'compact' ? (
+            <SignalRow
+              signal={item}
+              lens={lens}
+              opened={openedIds.includes(item.id)}
+              watching={isWatched(watched, item.id)}
+              onToggleWatch={() => {
+                tapFeedback();
+                toggleWatch(item.id, item.momentum);
+              }}
+              onPress={() => openSignal(item)}
+            />
+          ) : (
+            <SignalCard
+              signal={item}
+              lens={lens}
+              opened={openedIds.includes(item.id)}
+              watching={isWatched(watched, item.id)}
+              onToggleWatch={() => {
+                tapFeedback();
+                toggleWatch(item.id, item.momentum);
+              }}
+              onPress={() => openSignal(item)}
+              onOpenPlaybook={() => openPlaybook(item)}
+            />
+          )
+        }
         ListEmptyComponent={
           <View className="items-center gap-2 py-16">
             <AppText weight="semibold" className="text-foreground">

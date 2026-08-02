@@ -17,7 +17,7 @@ import {
 } from '@/lib/data/catalog';
 import { getSignalById } from '@/lib/data/signals';
 import { euro } from '@/lib/format';
-import { successFeedback, tapFeedback } from '@/lib/haptics';
+import { stepFeedback, successFeedback, tapFeedback } from '@/lib/haptics';
 import { palette } from '@/lib/palette';
 import { useOutcomeStore } from '@/lib/store/useOutcomeStore';
 import { useSignalStore } from '@/lib/store/useSignalStore';
@@ -230,7 +230,7 @@ export default function ContributeScreen() {
                         <Pressable
                           key={step}
                           onPress={() => {
-                            tapFeedback();
+                            stepFeedback();
                             setOutcomeStep(stepIndex);
                           }}
                           accessibilityRole="button"
@@ -264,7 +264,7 @@ export default function ContributeScreen() {
                       <Pressable
                         key={option}
                         onPress={() => {
-                          tapFeedback();
+                          stepFeedback();
                           setFraction(option);
                         }}
                         accessibilityRole="button"

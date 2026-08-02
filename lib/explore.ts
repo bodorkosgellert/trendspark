@@ -122,8 +122,15 @@ export function sourceUrl(source: string, keyword: string): string | null {
   return null;
 }
 
-/** Opens a source in the device browser. Never throws at the call site. */
-export async function openExternal(url: string): Promise<boolean> {
+/** Bare hostname of a link, e.g. `reddit.com`. Empty when it is not parseable. */
+export function hostOf(url: string): string {
+  const match = /^https?:\/\/([^/?#]+)/i.exec(url);
+  return match ? match[1].replace(/^www\./i, '') : '';
+}
+
+/** Opens a source in the device browser. Never throws at the call site. */ export async function openExternal(
+  url: string,
+): Promise<boolean> {
   try {
     await Linking.openURL(url);
     return true;

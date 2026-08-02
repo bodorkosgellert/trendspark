@@ -35,6 +35,23 @@ export function windowLabel(peakInDays: number): string {
   return `${peakInDays}d window`;
 }
 
+/** Window phrasing for a one-line metadata strip, where every character costs. */
+export function windowShort(peakInDays: number): string {
+  return peakInDays <= 7 ? `${peakInDays}d left` : `peaks in ${peakInDays}d`;
+}
+
+/** Competition in as few characters as stay readable. */
+export function competitionShort(competition: Competition): string {
+  switch (competition) {
+    case 'low':
+      return 'low comp';
+    case 'medium':
+      return 'med comp';
+    default:
+      return 'crowded';
+  }
+}
+
 export function windowTone(peakInDays: number): 'hot' | 'warning' | 'muted' {
   if (peakInDays <= 7) return 'hot';
   if (peakInDays <= 14) return 'warning';
