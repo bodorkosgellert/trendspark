@@ -1,6 +1,15 @@
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Bell, BarChart3, Check, Clock, Mic, RotateCcw } from 'lucide-react-native';
+import {
+  Bell,
+  BarChart3,
+  Check,
+  ChevronRight,
+  Clock,
+  Mic,
+  RotateCcw,
+  Swords,
+} from 'lucide-react-native';
 
 import { EmailCapture } from '@/components/EmailCapture';
 import { SectionLabel } from '@/components/SectionLabel';
@@ -263,6 +272,31 @@ export default function YouScreen() {
         </View>
 
         <EmailCapture />
+
+        <View className="gap-3">
+          <SectionLabel>Reading a window</SectionLabel>
+          <Pressable
+            onPress={() => {
+              tapFeedback();
+              router.push('/crowding');
+            }}
+            accessibilityRole="button"
+            className="border-border bg-panel flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80"
+          >
+            <Swords color={palette.inkDim} size={15} />
+            <View className="flex-1 gap-0.5">
+              <AppText weight="medium" className="text-foreground text-[14px]">
+                Who wins a window
+              </AppText>
+              <AppText className="text-muted text-xs">
+                First mover usually loses to best executor. Documented cases, how many entrants each
+                kind of window draws, and where app revenue actually ends up — every figure linked
+                at source.
+              </AppText>
+            </View>
+            <ChevronRight color={palette.inkDim} size={16} />
+          </Pressable>
+        </View>
 
         <View className="gap-3">
           <SectionLabel hint={activeDays.length === 1 ? 'Day 1' : `${activeDays.length} days`}>

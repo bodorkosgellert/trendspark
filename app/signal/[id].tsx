@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 
 import { MomentumBadge } from '@/components/MomentumBadge';
+import { CrowdPanel } from '@/components/CrowdPanel';
 import { EmergencePanel, WindowChip } from '@/components/EmergencePanel';
 import { MarketCompare } from '@/components/MarketCompare';
 import { SectionLabel } from '@/components/SectionLabel';
@@ -487,6 +488,8 @@ function SignalTab({
       <MarketCompare signal={signal} lens={lens} range={range} />
 
       <EmergencePanel signal={signal} />
+
+      <CrowdPanel signal={signal} />
 
       {archive ? (
         <View className="border-border bg-panel gap-2 rounded-2xl border p-4">

@@ -58,6 +58,10 @@ function RootNavigator() {
         name="market"
         options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
       />
+      <Stack.Screen
+        name="crowding"
+        options={{ presentation: 'modal', contentStyle: { backgroundColor: palette.background } }}
+      />
       <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
     </Stack>
   );
